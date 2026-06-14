@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(echo ANDROID_HOME=$ANDROID_HOME)",
+      "Bash(echo ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT)",
+      "Read(//c/Users/Administrator/StudioProjects/translate_ko_jp/$LOCALAPPDATA/Android/**)",
+      "Bash(flutter:*)",
+      "Bash(cd:*)"
+    ]
+  }
+}

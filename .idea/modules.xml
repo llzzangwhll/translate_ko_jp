@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/translate_ko_jp.iml" filepath="$PROJECT_DIR$/translate_ko_jp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/translate_ko_jp_android.iml" filepath="$PROJECT_DIR$/android/translate_ko_jp_android.iml" />
+    </modules>
+  </component>
+</project>
