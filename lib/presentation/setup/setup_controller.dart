@@ -46,7 +46,11 @@ class SetupController extends GetxController {
   /// in a state where the user can trigger a download.
   Future<void> checkStatus() async {
     errorMessage.value = '';
+    final statusAtStart = status.value;
     final outcome = await _ensureModelReady();
+    // If status or busy changed while we awaited (e.g. startDownload was
+    // called, or the UI pre-set a state for testing), don't override it.
+    if (isBusy.value || status.value != statusAtStart) return;
     switch (outcome) {
       case Ok(value: final readiness):
         switch (readiness) {
@@ -54,11 +58,16 @@ class SetupController extends GetxController {
             status.value = ModelStatus.loaded;
             _onReady();
           case ModelReadiness.needsDownload:
-            status.value = await _repository.currentStatus();
+            final s = await _repository.currentStatus();
+            if (!isBusy.value && status.value == statusAtStart) {
+              status.value = s;
+            }
         }
       case Err(failure: final f):
-        status.value = ModelStatus.error;
-        errorMessage.value = f.message;
+        if (!isBusy.value && status.value == statusAtStart) {
+          status.value = ModelStatus.error;
+          errorMessage.value = f.message;
+        }
     }
   }
 
