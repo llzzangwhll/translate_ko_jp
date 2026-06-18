@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 
 import '../../core/result.dart';
 import '../../data/repositories/model_repository.dart';
-import '../../data/services/model_download_service.dart';
 import '../../domain/entities/model_status.dart';
 import '../../domain/usecases/ensure_model_ready.dart';
 
@@ -116,8 +115,8 @@ class SetupController extends GetxController {
 
   /// Cancels an in-flight download and returns to the idle setup state.
   void cancel() {
-    if (_repository is ModelRepositoryImpl) {
-      (_repository as ModelRepositoryImpl).cancelDownload();
+    if (_repository case final ModelRepositoryImpl impl) {
+      impl.cancelDownload();
     }
     isBusy.value = false;
     status.value = ModelStatus.notDownloaded;
