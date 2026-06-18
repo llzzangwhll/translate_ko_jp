@@ -82,8 +82,8 @@ void main() {
     );
     final service = ModelDownloadServiceImpl(clientFactory: () => client);
 
-    expect(
-      () => service
+    await expectLater(
+      service
           .download(
             url: 'https://example.com/m.task',
             destPath: destPath(),
@@ -93,8 +93,6 @@ void main() {
       throwsA(isA<ModelDownloadException>()),
     );
 
-    // give the stream a tick to settle, then assert no dest file.
-    await Future<void>.delayed(const Duration(milliseconds: 10));
     expect(File(destPath()).existsSync(), isFalse);
   });
 

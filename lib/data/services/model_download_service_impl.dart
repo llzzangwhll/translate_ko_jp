@@ -18,6 +18,11 @@ class ModelDownloadException implements Exception {
 /// HTTP streaming download with byte progress, HTTP Range resume, cancel,
 /// and SHA-256 checksum verification. Writes to `<destPath>.part` then
 /// renames to [destPath] on success.
+///
+/// NOTE: Concurrent downloads on the same instance are not supported.
+/// Only one download at a time is assumed; calling [download] while another
+/// download is in progress will replace the active cancel handle, making the
+/// previous download uncancellable and potentially causing undefined behavior.
 class ModelDownloadServiceImpl implements ModelDownloadService {
   /// Injectable for tests (MockClient). Each download uses a fresh client.
   final http.Client Function() _clientFactory;
@@ -152,21 +157,21 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
       controller.close();
     } on ModelDownloadException catch (e) {
       await _closeSink(sink);
-      client.close();
       controller.addError(e);
       controller.close();
     } catch (e) {
       await _closeSink(sink);
-      client.close();
       controller.addError(ModelDownloadException(e.toString()));
       controller.close();
+    } finally {
+      client.close();
     }
-    // Normal path closes client here too (double-close is a no-op for most clients).
-    client.close();
   }
 
-  /// Returns a stream that forwards chunks from [source] but errors immediately
-  /// (with [ModelDownloadException]) if [cancelFuture] completes (with error).
+  /// Returns a stream that forwards chunks from [source] but immediately
+  /// terminates with a [ModelDownloadException] if [cancelFuture] resolves
+  /// with an error (i.e., when [cancel] is called). This ensures the
+  /// in-progress chunk loop in [_runDownload] is interrupted promptly.
   Stream<List<int>> _makeRacedStream(
     Stream<List<int>> source,
     Future<Never> cancelFuture,
