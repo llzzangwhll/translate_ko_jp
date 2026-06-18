@@ -11,6 +11,8 @@ class DownloadProgress {
 }
 
 abstract interface class ModelDownloadService {
+  /// Streams progress; emits a final event with done=true on success.
+  /// Throws on network/checksum failure (callers map to NetworkFailure).
   Stream<DownloadProgress> download({
     required String url,
     required String destPath,

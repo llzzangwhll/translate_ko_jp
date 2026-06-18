@@ -13,6 +13,7 @@ void main() {
   test('ja maps to correct codes', () {
     expect(Language.ja.sttLocale, 'ja_JP');
     expect(Language.ja.ttsCode, 'ja-JP');
+    expect(Language.ja.nativeLabel, '日本語');
     expect(Language.ja.promptLabel, 'Japanese');
     expect(Language.ja.opposite, Language.ko);
   });
