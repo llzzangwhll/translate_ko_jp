@@ -30,11 +30,16 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
   // Per-download cancel completer; created fresh each time download() is called.
   Completer<Never>? _cancelCompleter;
 
+  // True when cancel() has been called for the current download; reset at the
+  // start of each download() call so the instance is reusable.
+  bool _cancelled = false;
+
   ModelDownloadServiceImpl({http.Client Function()? clientFactory})
       : _clientFactory = clientFactory ?? (() => http.Client());
 
   @override
   void cancel() {
+    _cancelled = true;
     final c = _cancelCompleter;
     if (c != null && !c.isCompleted) {
       c.completeError(const ModelDownloadException('cancelled'));
@@ -48,6 +53,8 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
     String? sha256,
     Map<String, String>? headers,
   }) {
+    // Reset cancel flag for this fresh download.
+    _cancelled = false;
     // Create a fresh cancel completer for this download.
     final cancelCompleter = Completer<Never>();
     _cancelCompleter = cancelCompleter;
@@ -157,6 +164,13 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
       controller.close();
     } on ModelDownloadException catch (e) {
       await _closeSink(sink);
+      // On cancel: flush+close is already done by _closeSink above; delete the
+      // partial file so a subsequent download starts clean (not a corrupt resume).
+      // On non-cancel errors (network failure, checksum, HTTP error): keep the
+      // .part file so the next attempt can resume via Range header.
+      if (_cancelled) {
+        await _safeDelete(partFile);
+      }
       controller.addError(e);
       controller.close();
     } catch (e) {
@@ -208,7 +222,12 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
           },
         );
       },
-      onCancel: () => dataSub?.cancel(),
+      onCancel: () {
+        // Defensive: if the listener cancels before or during the stream,
+        // cancel the data subscription and close the inner controller.
+        dataSub?.cancel();
+        if (!ctrl.isClosed) ctrl.close();
+      },
     );
 
     return ctrl.stream;

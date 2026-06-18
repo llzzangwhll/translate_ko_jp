@@ -10,6 +10,7 @@ class FakeModelRepository implements ModelRepository {
 
   bool loadCalled = false;
   int statusCalls = 0;
+  bool cancelDownloadCalled = false;
 
   @override
   Future<ModelStatus> currentStatus() async {
@@ -28,5 +29,10 @@ class FakeModelRepository implements ModelRepository {
   Future<Result<void>> load() async {
     loadCalled = true;
     return loadResult;
+  }
+
+  @override
+  void cancelDownload() {
+    cancelDownloadCalled = true;
   }
 }

@@ -15,6 +15,7 @@ abstract interface class ModelRepository {
   Future<ModelStatus> currentStatus();
   Stream<DownloadProgress> download(); // uses configured URL/checksum
   Future<Result<void>> load();
+  void cancelDownload();
 }
 
 /// Resolves the on-disk destination path for [fileName]. Injectable so tests
@@ -61,6 +62,7 @@ class ModelRepositoryImpl implements ModelRepository {
   }
 
   /// Forwards cancellation to the underlying download service.
+  @override
   void cancelDownload() => _downloadService.cancel();
 
   @override

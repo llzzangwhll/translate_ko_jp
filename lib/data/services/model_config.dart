@@ -24,6 +24,7 @@ class ModelConfig {
       : url =
             'https://storage.googleapis.com/translate-ko-jp-models/gemma-4-e2b.task',
         fileName = 'gemma-4-e2b.task',
+        // TODO(ship): set the real Gemma 4 E2B download URL and SHA-256 before release.
         sha256 = null,
         headers = null;
 

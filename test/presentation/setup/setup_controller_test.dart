@@ -29,7 +29,6 @@ void main() {
   test('initial status is notDownloaded', () {
     controller = build();
     expect(controller.status.value, ModelStatus.notDownloaded);
-    expect(controller.progress.value, 0.0);
     expect(controller.isBusy.value, isFalse);
   });
 
@@ -98,6 +97,7 @@ void main() {
 
     expect(controller.isBusy.value, isFalse);
     expect(controller.status.value, ModelStatus.notDownloaded);
+    expect(repo.cancelDownloadCalled, isTrue);
   });
 }
 

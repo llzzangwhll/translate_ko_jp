@@ -176,5 +176,7 @@ void main() {
 
     expect(errors, isNotEmpty);
     expect(errors.first, isA<ModelDownloadException>());
+    // After cancel, the .part file must be deleted (not left for a corrupt resume).
+    expect(File('${destPath()}.part').existsSync(), isFalse);
   });
 }

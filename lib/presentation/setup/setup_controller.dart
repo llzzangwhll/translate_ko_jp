@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../core/result.dart';
@@ -29,16 +31,13 @@ class SetupController extends GetxController {
   final totalBytes = 0.obs;
   final errorMessage = ''.obs;
 
-  /// 0.0..1.0 download fraction for the progress bar.
-  late final progress = Rx<double>(0.0);
-
   double get fraction =>
       totalBytes.value > 0 ? receivedBytes.value / totalBytes.value : 0.0;
 
   @override
   void onInit() {
     super.onInit();
-    checkStatus();
+    unawaited(checkStatus());
   }
 
   /// Runs EnsureModelReady. If ready, navigates. Otherwise leaves the screen
@@ -82,7 +81,6 @@ class SetupController extends GetxController {
       await for (final p in _repository.download()) {
         receivedBytes.value = p.received;
         totalBytes.value = p.total;
-        progress.value = p.fraction;
       }
     } catch (e) {
       status.value = ModelStatus.error;
@@ -115,9 +113,7 @@ class SetupController extends GetxController {
 
   /// Cancels an in-flight download and returns to the idle setup state.
   void cancel() {
-    if (_repository case final ModelRepositoryImpl impl) {
-      impl.cancelDownload();
-    }
+    _repository.cancelDownload();
     isBusy.value = false;
     status.value = ModelStatus.notDownloaded;
   }
