@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../core/language.dart';
@@ -67,7 +68,7 @@ class TranslationController extends GetxController {
     sourceText.value = result.text;
     if (result.isFinal && result.text.trim().isNotEmpty) {
       isListening.value = false;
-      translate();
+      unawaited(translate());
     }
   }
 
@@ -76,22 +77,25 @@ class TranslationController extends GetxController {
     if (text.isEmpty) return;
 
     isTranslating.value = true;
-    translatedText.value = '';
-    errorMessage.value = '';
+    try {
+      translatedText.value = '';
+      errorMessage.value = '';
 
-    final result = await _translateText(text: text, direction: direction.value);
-    switch (result) {
-      case Ok(value: final r):
-        translatedText.value = r.translatedText;
-        lastResult.value = r;
-        onTranslated?.call(r);
-        if (autoSpeak.value) {
-          await _speakText(text: r.translatedText, language: targetLanguage);
-        }
-      case Err(failure: final f):
-        errorMessage.value = f.message;
+      final result = await _translateText(text: text, direction: direction.value);
+      switch (result) {
+        case Ok(value: final r):
+          translatedText.value = r.translatedText;
+          lastResult.value = r;
+          onTranslated?.call(r);
+          if (autoSpeak.value) {
+            await _speakText(text: r.translatedText, language: targetLanguage);
+          }
+        case Err(failure: final f):
+          errorMessage.value = f.message;
+      }
+    } finally {
+      isTranslating.value = false;
     }
-    isTranslating.value = false;
   }
 
   Future<void> speakSource() async {
@@ -106,6 +110,7 @@ class TranslationController extends GetxController {
   }
 
   void toggleDirection() {
+    errorMessage.value = '';
     direction.value = direction.value.reversed;
     final old = sourceText.value;
     sourceText.value = translatedText.value;

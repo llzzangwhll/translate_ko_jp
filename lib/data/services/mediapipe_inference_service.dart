@@ -42,7 +42,7 @@ class MediaPipeInferenceService implements InferenceService {
       'sourceLang': direction.from.promptLabel,
       'targetLang': direction.to.promptLabel,
     });
-    return (result as String?) ?? '';
+    return result is String ? result : '';
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translate_ko_jp/core/language.dart';
 import 'package:translate_ko_jp/data/repositories/translation_repository.dart';
@@ -90,5 +91,22 @@ void main() {
 
     expect(tts.spoken.single.text, 'こんにちは');
     expect(tts.spoken.single.language, Language.ja);
+  });
+
+  test('translate() sets errorMessage on PlatformException and resets isTranslating', () async {
+    final c = _build(
+      inference: FakeInferenceService(
+        throwOnTranslate: PlatformException(code: 'TRANSLATE_FAILED', message: 'boom'),
+      ),
+      speech: FakeSpeechService(),
+      tts: FakeTtsService(),
+    );
+    c.sourceText.value = '안녕';
+
+    await c.translate();
+
+    expect(c.errorMessage.value, contains('boom'));
+    expect(c.translatedText.value, isEmpty);
+    expect(c.isTranslating.value, isFalse);
   });
 }

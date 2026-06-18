@@ -14,7 +14,7 @@ import '../presentation/translation/translation_controller.dart';
 void registerTranslationDeps() {
   // Services (shared singletons)
   Get.lazyPut<InferenceService>(() => MediaPipeInferenceService(), fenix: true);
-  Get.lazyPut<SpeechService>(() => SpeechServiceImpl()..initialize(), fenix: true);
+  Get.lazyPut<SpeechService>(() => SpeechServiceImpl(), fenix: true);
   Get.lazyPut<TtsService>(() => TtsServiceImpl()..initialize(), fenix: true);
 
   // Repository

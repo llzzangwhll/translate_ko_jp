@@ -7,7 +7,7 @@ import '../../fakes/fake_inference_service.dart';
 
 void main() {
   test('TranslateText delegates to repository and returns Result', () async {
-    final repo = TranslationRepositoryImpl(FakeInferenceService(response: 'こんにちは'));
+    final TranslationRepository repo = TranslationRepositoryImpl(FakeInferenceService(response: 'こんにちは'));
     final useCase = TranslateText(repo);
 
     final result = await useCase(
