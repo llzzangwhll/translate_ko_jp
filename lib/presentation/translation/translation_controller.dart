@@ -38,6 +38,7 @@ class TranslationController extends GetxController {
   Language get sourceLanguage => direction.value.from;
   Language get targetLanguage => direction.value.to;
 
+  @override
   Future<void> onReady() async {
     super.onReady();
     await _listenSpeech.initialize();
