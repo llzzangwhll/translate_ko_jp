@@ -49,9 +49,17 @@ flutter build ios --debug --no-codesign
 
 ## 4. 모델 파일 배치 & 채널 스모크
 
-iOS 추론은 앱 문서 디렉터리에서 `.task` 모델을 찾는다 (`findModelFile()`가 `documentDirectory` 우선 검색 — 인앱 다운로더가 쓰는 위치와 동일).
+iOS 추론은 앱 문서 디렉터리에서 모델을 찾는다 (`findModelFile()`가 `documentDirectory` 우선 검색 — 인앱 다운로더가 쓰는 위치와 동일). 탐색 확장자는 `.litertlm` / `.task` / `.bin`.
 
-- [ ] 인앱 다운로드(설정 화면)로 모델을 받거나, 시뮬레이터의 앱 Documents 디렉터리에 알려진 파일명(예: `gemma-4-e2b.task` 또는 `MODEL_NAMES` 목록 중 하나)으로 수동 배치
+> **(중요) Gemma 4 E2B는 `.litertlm`(LiteRT-LM) 형식으로 배포된다.** 네이티브 핸들러는
+> `.litertlm` 파일을 찾아 명시 경로로 `LlmInference`에 넘긴다. **설치된 MediaPipe
+> `tasks-genai 0.10.22`가 `.litertlm` 콘텐츠를 실제로 로드하는지 반드시 기기에서 확인**한다.
+> - 로드 성공 → 그대로 사용.
+> - `loadModel`이 실패(`LOAD_FAILED`)하면 MediaPipe가 해당 형식을 지원하지 않는 것이므로,
+>   (a) 웹 변형 `gemma-4-E2B-it-web.task`를 시도하거나, (b) 추론 백엔드를 **LiteRT-LM**으로
+>   이전(옵션 C)해야 한다. `InferenceService` 인터페이스 뒤로 추상화돼 있어 교체 가능.
+
+- [ ] 인앱 다운로드(설정 화면)로 모델을 받거나, 시뮬레이터의 앱 Documents 디렉터리에 알려진 파일명(예: `gemma-4-E2B-it.litertlm` 또는 `MODEL_NAMES` 목록 중 하나)으로 수동 배치
 - [ ] `checkModelExists` → `true` 반환 확인
 - [ ] `loadModel` → 성공(`true`), 잘못된/빈 파일이면 `MODEL_NOT_FOUND`/`LOAD_FAILED`
 - [ ] 로드 전에 `translate` 호출 시 `NOT_LOADED` 에러

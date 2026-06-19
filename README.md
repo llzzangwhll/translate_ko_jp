@@ -34,11 +34,17 @@ samples, guidance on mobile development, and a full API reference.
 
    ```json
    {
-     "MODEL_URL": "https://huggingface.co/<org>/<repo>/resolve/main/<file>.task",
+     "MODEL_URL": "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
      "HF_TOKEN": "hf_xxx",
      "MODEL_SHA256": ""
    }
    ```
+
+   > 모델은 Gemma 4 E2B의 **`.litertlm`** (LiteRT-LM) 빌드입니다. 저장소는 **gated**이므로
+   > `HF_TOKEN` 계정으로 모델 페이지에서 Gemma 라이선스에 먼저 동의해야 다운로드됩니다.
+   > 네이티브 핸들러(Android/iOS)는 `.litertlm`/`.task`/`.bin`을 탐색·로드하지만,
+   > 설치된 MediaPipe(`tasks-genai 0.10.22`)가 `.litertlm`을 실제로 로드하는지는
+   > 기기에서 확인이 필요합니다 (`docs/ios-verification-checklist.md` 참고).
 
 3. 실행/빌드 시 파일을 주입합니다:
 
@@ -58,14 +64,14 @@ samples, guidance on mobile development, and a full API reference.
 
 ```sh
 flutter run \
-  --dart-define=MODEL_URL=https://huggingface.co/<org>/<repo>/resolve/main/<file>.task \
+  --dart-define=MODEL_URL=https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm \
   --dart-define=HF_TOKEN=<your_hf_token> \
   --dart-define=MODEL_SHA256=<optional_lowercase_hex_sha256>
 ```
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MODEL_URL` | No (has default) | Full HTTPS resolve URL of the `.task` model file. Defaults to a best-guess Hugging Face URL — **verify the exact path before release**. |
+| `MODEL_URL` | No (has default) | Full HTTPS resolve URL of the on-device model file. Defaults to the gated Gemma 4 E2B `.litertlm` build on Hugging Face — **accept the license and verify the exact path before release**. |
 | `HF_TOKEN` | For private/gated repos | Hugging Face API token. Injected as `Authorization: Bearer <token>` header. Supply via `secrets.json` or `--dart-define`; **never commit it**. |
 | `MODEL_SHA256` | Recommended | Lowercase hex SHA-256 of the downloaded file. If omitted, checksum verification is skipped and a warning is logged. |
 

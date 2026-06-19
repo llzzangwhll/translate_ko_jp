@@ -14,12 +14,15 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "com.example.translate_ko_jp/gemma"
         private const val TAG = "GemmaTranslator"
-        private val MODEL_EXTENSIONS = listOf("bin", "task")
+        private val MODEL_EXTENSIONS = listOf("litertlm", "task", "bin")
         private val MODEL_NAMES = listOf(
+            "gemma-4-E2B-it.litertlm",
+            "gemma-4-E2B-it-web.task",
             "gemma3-1B-it-int4.task",
             "gemma-2b-it-gpu-int4.bin",
             "gemma-2b-it-cpu-int4.bin",
             "gemma3-1b-it-int4.bin",
+            "model.litertlm",
             "model.bin",
             "model.task"
         )

@@ -52,9 +52,10 @@ class ModelConfig {
   /// Creates a [ModelConfig] from compile-time `--dart-define` values.
   ///
   /// Supported defines:
-  /// - `MODEL_URL` — full HTTPS URL of the `.task` file to download.
-  ///   Default is a best-guess Hugging Face resolve URL; **verify the exact
-  ///   HF repo/file path before release** and override via `--dart-define`.
+  /// - `MODEL_URL` — full HTTPS URL of the on-device model file to download.
+  ///   Default points at the Gemma 4 E2B `.litertlm` (LiteRT-LM) build on
+  ///   Hugging Face. The repo is **gated** — accept the Gemma license with the
+  ///   account behind `HF_TOKEN`, and verify the exact file before release.
   /// - `MODEL_SHA256` — optional lowercase hex SHA-256 of the file.
   ///   If omitted, checksum verification is skipped (a warning is logged).
   /// - `HF_TOKEN` — Hugging Face Bearer token. Must NOT be committed;
@@ -63,7 +64,7 @@ class ModelConfig {
     const url = String.fromEnvironment(
       'MODEL_URL',
       defaultValue:
-          'https://huggingface.co/google/gemma-4-e2b-it-litert/resolve/main/gemma-4-e2b-it-int4.task',
+          'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
     );
     const sha = String.fromEnvironment('MODEL_SHA256');
     const token = String.fromEnvironment('HF_TOKEN');

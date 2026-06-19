@@ -10,15 +10,18 @@ final class GemmaInferenceHandler {
     // MARK: - 상수 (Android MODEL_NAMES / MODEL_EXTENSIONS와 동일 순서/값)
 
     private static let modelNames = [
+        "gemma-4-E2B-it.litertlm",
+        "gemma-4-E2B-it-web.task",
         "gemma3-1B-it-int4.task",
         "gemma-2b-it-gpu-int4.bin",
         "gemma-2b-it-cpu-int4.bin",
         "gemma3-1b-it-int4.bin",
+        "model.litertlm",
         "model.bin",
         "model.task"
     ]
 
-    private static let modelExtensions = ["bin", "task"]
+    private static let modelExtensions = ["litertlm", "task", "bin"]
 
     private static let maxTokens = 512
 
