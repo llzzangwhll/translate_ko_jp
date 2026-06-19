@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'model_download_service.dart';
@@ -150,6 +151,9 @@ class ModelDownloadServiceImpl implements ModelDownloadService {
           throw ModelDownloadException(
               'checksum mismatch: expected $sha256, got $digest');
         }
+      } else {
+        debugPrint('[ModelDownload] WARNING: no SHA-256 provided; '
+            'skipping checksum verification for $destPath');
       }
 
       // Atomic-ish finalize: rename part -> dest.

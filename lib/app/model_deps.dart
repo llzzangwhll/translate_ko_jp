@@ -13,14 +13,20 @@ import 'routes.dart';
 ///
 /// Precondition: an [InferenceService] is already registered in GetX DI
 /// (owned by plan 01). This function only looks it up.
-void registerModelDeps({ModelConfig config = const ModelConfig.gemmaE2B()}) {
+///
+/// [config] defaults to [ModelConfig.fromEnvironment()], which reads
+/// `MODEL_URL`, `MODEL_SHA256`, and `HF_TOKEN` from `--dart-define` values
+/// supplied at build/run time. Pass an explicit config in tests.
+void registerModelDeps({ModelConfig? config}) {
+  final cfg = config ?? ModelConfig.fromEnvironment();
+
   Get.lazyPut<ModelDownloadService>(() => ModelDownloadServiceImpl(), fenix: true);
 
   Get.lazyPut<ModelRepository>(
     () => ModelRepositoryImpl(
       inference: Get.find<InferenceService>(),
       downloadService: Get.find<ModelDownloadService>(),
-      config: config,
+      config: cfg,
     ),
     fenix: true,
   );
