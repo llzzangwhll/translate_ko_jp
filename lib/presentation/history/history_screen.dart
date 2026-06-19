@@ -34,13 +34,47 @@ class HistoryScreen extends StatelessWidget {
         if (controller.entries.isEmpty) {
           return const Center(child: Text('히스토리가 없습니다'));
         }
-        return ListView.separated(
-          itemCount: controller.entries.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final entry = controller.entries[index];
-            return _HistoryTile(entry: entry, controller: controller);
-          },
+        return Column(
+          children: [
+            if (error != null)
+              Container(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          error,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: '닫기',
+                      onPressed: () => controller.errorMessage.value = null,
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ListView.separated(
+                itemCount: controller.entries.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final entry = controller.entries[index];
+                  return _HistoryTile(entry: entry, controller: controller);
+                },
+              ),
+            ),
+          ],
         );
       }),
     );

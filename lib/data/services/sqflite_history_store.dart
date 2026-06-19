@@ -96,6 +96,9 @@ class SqfliteHistoryStore implements HistoryStore {
   }
 
   Language _langFromName(String name) {
-    return Language.values.firstWhere((l) => l.name == name);
+    return Language.values.firstWhere(
+      (l) => l.name == name,
+      orElse: () => Language.ko,
+    );
   }
 }

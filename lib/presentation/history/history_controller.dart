@@ -36,17 +36,21 @@ class HistoryController extends GetxController {
   Future<void> load() async {
     isLoading.value = true;
     errorMessage.value = null;
-    final result = await _getHistory();
-    switch (result) {
-      case Ok<List<TranslationResult>>(value: final list):
-        entries.assignAll(list);
-      case Err<List<TranslationResult>>(failure: final f):
-        errorMessage.value = f.message;
+    try {
+      final result = await _getHistory();
+      switch (result) {
+        case Ok<List<TranslationResult>>(value: final list):
+          entries.assignAll(list);
+        case Err<List<TranslationResult>>(failure: final f):
+          errorMessage.value = f.message;
+      }
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   Future<void> deleteEntry(int id) async {
+    errorMessage.value = null;
     final result = await _deleteHistoryEntry(id);
     switch (result) {
       case Ok<void>():
@@ -57,6 +61,7 @@ class HistoryController extends GetxController {
   }
 
   Future<void> clearAll() async {
+    errorMessage.value = null;
     final result = await _clearHistory();
     switch (result) {
       case Ok<void>():
@@ -67,10 +72,14 @@ class HistoryController extends GetxController {
   }
 
   Future<void> play(TranslationResult entry) async {
-    await _tts.stop();
-    await _tts.speak(
-      text: entry.translatedText,
-      language: entry.direction.to,
-    );
+    try {
+      await _tts.stop();
+      await _tts.speak(
+        text: entry.translatedText,
+        language: entry.direction.to,
+      );
+    } catch (e) {
+      errorMessage.value = '재생 실패: $e';
+    }
   }
 }

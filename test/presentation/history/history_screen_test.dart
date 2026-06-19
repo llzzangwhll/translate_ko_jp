@@ -100,4 +100,36 @@ void main() {
     expect(find.text('b'), findsNothing);
     expect(repo.clearCount, 1);
   });
+
+  testWidgets(
+      'shows inline error banner above list when entries exist and errorMessage is set',
+      (tester) async {
+    await repo.save(_entry(at: 1000, src: 'hello', tr: 'こんにちは'));
+    await repo.save(_entry(at: 2000, src: 'world', tr: 'せかい'));
+
+    Get.put<HistoryController>(HistoryController(
+      getHistory: GetHistory(repo),
+      deleteHistoryEntry: DeleteHistoryEntry(repo),
+      clearHistory: ClearHistory(repo),
+      tts: tts,
+    ));
+    await tester.pumpWidget(const GetMaterialApp(home: HistoryScreen()));
+    await tester.pumpAndSettle();
+
+    // Inject error while entries remain
+    final controller = Get.find<HistoryController>();
+    controller.errorMessage.value = '삭제 실패: disk full';
+    await tester.pump();
+
+    // Inline banner is visible
+    expect(find.text('삭제 실패: disk full'), findsOneWidget);
+    // List items are still rendered
+    expect(find.text('hello'), findsOneWidget);
+    expect(find.text('world'), findsOneWidget);
+
+    // Dismiss banner via close button
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pump();
+    expect(find.text('삭제 실패: disk full'), findsNothing);
+  });
 }

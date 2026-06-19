@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:translate_ko_jp/core/failure.dart';
+import 'package:translate_ko_jp/core/result.dart';
 import 'package:translate_ko_jp/domain/entities/language_direction.dart';
 import 'package:translate_ko_jp/domain/entities/translation_result.dart';
 import 'package:translate_ko_jp/domain/usecases/get_history.dart';
@@ -64,7 +65,7 @@ void main() {
   test('deleteEntry removes the row and reloads', () async {
     await repo.save(_entry(at: 1000, src: 'keep'));
     final r = await repo.save(_entry(at: 2000, src: 'drop'));
-    final dropId = (r as dynamic).value as int;
+    final dropId = (r as Ok<int>).value;
 
     final c = _build(repo, tts);
     await c.load();
@@ -101,7 +102,7 @@ void main() {
 
   test('deleteEntry surfaces failure as errorMessage', () async {
     final r = await repo.save(_entry(at: 1000));
-    final id = (r as dynamic).value as int;
+    final id = (r as Ok<int>).value;
     final c = _build(repo, tts);
     await c.load();
 
@@ -109,5 +110,31 @@ void main() {
     await c.deleteEntry(id);
 
     expect(c.errorMessage.value, 'del fail');
+  });
+
+  test('deleteEntry on failure keeps existing entries intact', () async {
+    await repo.save(_entry(at: 1000, src: 'keep'));
+    final r = await repo.save(_entry(at: 2000, src: 'also keep'));
+    final id = (r as Ok<int>).value;
+    final c = _build(repo, tts);
+    await c.load();
+    expect(c.entries, hasLength(2));
+
+    repo.failDelete = const StorageFailure('disk full');
+    await c.deleteEntry(id);
+
+    expect(c.errorMessage.value, isNotNull);
+    expect(c.entries, hasLength(2));
+  });
+
+  test('play sets errorMessage when TTS throws', () async {
+    final entry = _entry(at: 1000);
+    tts.throwOnSpeak = Exception('TTS crashed');
+    final c = _build(repo, tts);
+
+    await c.play(entry);
+
+    expect(c.errorMessage.value, isNotNull);
+    expect(c.errorMessage.value, contains('재생 실패'));
   });
 }
