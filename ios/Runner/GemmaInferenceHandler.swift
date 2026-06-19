@@ -80,6 +80,7 @@ final class GemmaInferenceHandler {
                 NSLog("[GemmaTranslator] Loading model from: \(path) (\(size / 1024 / 1024)MB)")
 
                 // 이전 인스턴스 정리 (Android llmInference?.close()에 대응)
+                self.llmInference?.close()
                 self.llmInference = nil
 
                 let options = LlmInference.Options(modelPath: path)
