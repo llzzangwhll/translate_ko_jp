@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../core/result.dart';
 import '../data/services/inference_service.dart';
 import '../data/services/mediapipe_inference_service.dart';
+import '../data/services/permission_service.dart';
+import '../data/services/permission_service_impl.dart';
 import '../data/services/speech_service.dart';
 import '../data/services/speech_service_impl.dart';
 import '../data/services/tts_service.dart';
@@ -19,6 +21,7 @@ void registerTranslationDeps() {
   Get.lazyPut<InferenceService>(() => MediaPipeInferenceService(), fenix: true);
   Get.lazyPut<SpeechService>(() => SpeechServiceImpl(), fenix: true);
   Get.lazyPut<TtsService>(() => TtsServiceImpl()..initialize(), fenix: true);
+  Get.lazyPut<PermissionService>(() => PermissionServiceImpl(), fenix: true);
 
   // Repository
   Get.lazyPut<TranslationRepository>(
@@ -33,6 +36,7 @@ void registerTranslationDeps() {
         translateText: TranslateText(Get.find<TranslationRepository>()),
         listenSpeech: ListenSpeech(Get.find<SpeechService>()),
         speakText: SpeakText(Get.find<TtsService>()),
+        permissionService: Get.find<PermissionService>(),
       );
       final save = Get.find<SaveTranslation>();
       controller.onTranslated = (r) async {

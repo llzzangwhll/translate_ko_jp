@@ -6,6 +6,7 @@ import 'package:translate_ko_jp/domain/usecases/speak_text.dart';
 import 'package:translate_ko_jp/domain/usecases/translate_text.dart';
 import 'package:translate_ko_jp/presentation/translation/translation_controller.dart';
 import '../fakes/fake_inference_service.dart';
+import '../fakes/fake_permission_service.dart';
 import '../fakes/fake_speech_service.dart';
 import '../fakes/fake_tts_service.dart';
 import '../fakes/fake_history_repository.dart';
@@ -18,6 +19,7 @@ void main() {
       translateText: TranslateText(repo),
       listenSpeech: ListenSpeech(FakeSpeechService()),
       speakText: SpeakText(FakeTtsService()),
+      permissionService: FakePermissionService(),
     );
     final save = SaveTranslation(history);
     controller.onTranslated = (r) => save(r);

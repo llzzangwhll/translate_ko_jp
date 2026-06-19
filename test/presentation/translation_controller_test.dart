@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:translate_ko_jp/core/language.dart';
 import 'package:translate_ko_jp/data/repositories/translation_repository.dart';
+import 'package:translate_ko_jp/data/services/permission_service.dart';
 import 'package:translate_ko_jp/domain/entities/language_direction.dart';
 import 'package:translate_ko_jp/domain/entities/translation_result.dart';
 import 'package:translate_ko_jp/domain/usecases/listen_speech.dart';
@@ -9,6 +10,7 @@ import 'package:translate_ko_jp/domain/usecases/speak_text.dart';
 import 'package:translate_ko_jp/domain/usecases/translate_text.dart';
 import 'package:translate_ko_jp/presentation/translation/translation_controller.dart';
 import '../fakes/fake_inference_service.dart';
+import '../fakes/fake_permission_service.dart';
 import '../fakes/fake_speech_service.dart';
 import '../fakes/fake_tts_service.dart';
 
@@ -16,12 +18,14 @@ TranslationController _build({
   required FakeInferenceService inference,
   required FakeSpeechService speech,
   required FakeTtsService tts,
+  FakePermissionService? permission,
 }) {
   final repo = TranslationRepositoryImpl(inference);
   return TranslationController(
     translateText: TranslateText(repo),
     listenSpeech: ListenSpeech(speech),
     speakText: SpeakText(tts),
+    permissionService: permission ?? FakePermissionService(),
   );
 }
 
@@ -108,5 +112,78 @@ void main() {
     expect(c.errorMessage.value, contains('boom'));
     expect(c.translatedText.value, isEmpty);
     expect(c.isTranslating.value, isFalse);
+  });
+
+  // --- New permission tests ---
+
+  test('permission denied → errorMessage set, isListening stays false, speech not started', () async {
+    final speech = FakeSpeechService();
+    final permission = FakePermissionService(result: MicPermission.denied);
+    final c = _build(
+      inference: FakeInferenceService(),
+      speech: speech,
+      tts: FakeTtsService(),
+      permission: permission,
+    );
+
+    await c.toggleListening();
+
+    expect(c.isListening.value, isFalse);
+    expect(c.errorMessage.value, isNotEmpty);
+    expect(c.errorMessage.value, contains('마이크 권한이 필요합니다'));
+    expect(speech.listening, isFalse);
+  });
+
+  test('permission permanentlyDenied → permissionPermanentlyDenied true, errorMessage set', () async {
+    final speech = FakeSpeechService();
+    final permission = FakePermissionService(result: MicPermission.permanentlyDenied);
+    final c = _build(
+      inference: FakeInferenceService(),
+      speech: speech,
+      tts: FakeTtsService(),
+      permission: permission,
+    );
+
+    await c.toggleListening();
+
+    expect(c.isListening.value, isFalse);
+    expect(c.permissionPermanentlyDenied.value, isTrue);
+    expect(c.errorMessage.value, isNotEmpty);
+    expect(c.errorMessage.value, contains('설정에서 허용해 주세요'));
+    expect(speech.listening, isFalse);
+  });
+
+  test('openAppSettings calls permission service openSettings', () async {
+    final permission = FakePermissionService(result: MicPermission.permanentlyDenied);
+    final c = _build(
+      inference: FakeInferenceService(),
+      speech: FakeSpeechService(),
+      tts: FakeTtsService(),
+      permission: permission,
+    );
+
+    await c.openAppSettings();
+
+    expect(permission.openSettingsCalls, 1);
+  });
+
+  test('permission granted clears errorMessage and starts listening', () async {
+    final speech = FakeSpeechService();
+    final permission = FakePermissionService(result: MicPermission.granted);
+    final c = _build(
+      inference: FakeInferenceService(),
+      speech: speech,
+      tts: FakeTtsService(),
+      permission: permission,
+    );
+    // Pre-set an old error to ensure it's cleared
+    c.errorMessage.value = 'old error';
+
+    await c.toggleListening();
+
+    expect(c.isListening.value, isTrue);
+    expect(c.errorMessage.value, isEmpty);
+    expect(speech.listening, isTrue);
+    expect(c.permissionPermanentlyDenied.value, isFalse);
   });
 }

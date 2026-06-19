@@ -64,6 +64,12 @@ class TranslationScreen extends GetView<TranslationController> {
                 ? const SizedBox.shrink()
                 : Text(controller.errorMessage.value,
                     style: const TextStyle(color: Colors.red))),
+            Obx(() => controller.permissionPermanentlyDenied.value
+                ? OutlinedButton(
+                    onPressed: controller.openAppSettings,
+                    child: const Text('설정 열기'),
+                  )
+                : const SizedBox.shrink()),
             Center(
               child: Obx(() => FloatingActionButton.large(
                     onPressed: controller.toggleListening,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../core/failure.dart';
 import '../../core/language.dart';
 import '../../core/result.dart';
 import '../../domain/entities/language_direction.dart';
@@ -8,20 +9,24 @@ import '../../domain/entities/translation_result.dart';
 import '../../domain/usecases/listen_speech.dart';
 import '../../domain/usecases/speak_text.dart';
 import '../../domain/usecases/translate_text.dart';
+import '../../data/services/permission_service.dart';
 import '../../data/services/speech_service.dart';
 
 class TranslationController extends GetxController {
   final TranslateText _translateText;
   final ListenSpeech _listenSpeech;
   final SpeakText _speakText;
+  final PermissionService _permission;
 
   TranslationController({
     required TranslateText translateText,
     required ListenSpeech listenSpeech,
     required SpeakText speakText,
+    required PermissionService permissionService,
   })  : _translateText = translateText,
         _listenSpeech = listenSpeech,
-        _speakText = speakText;
+        _speakText = speakText,
+        _permission = permissionService;
 
   final direction = LanguageDirection.koToJa().obs;
   final sourceText = ''.obs;
@@ -31,6 +36,7 @@ class TranslationController extends GetxController {
   final autoSpeak = true.obs;
   final lastResult = Rxn<TranslationResult>();
   final errorMessage = ''.obs;
+  final permissionPermanentlyDenied = false.obs;
 
   /// Integration seam (plan 05): called with each successful translation so
   /// the history flow can persist it. Not wired here.
@@ -52,6 +58,24 @@ class TranslationController extends GetxController {
       if (sourceText.value.trim().isNotEmpty) await translate();
       return;
     }
+
+    // Request microphone permission before starting listening
+    final perm = await _permission.ensureMicrophone();
+    switch (perm) {
+      case MicPermission.granted:
+        permissionPermanentlyDenied.value = false;
+        errorMessage.value = '';
+      case MicPermission.denied:
+        errorMessage.value =
+            const PermissionFailure('마이크 권한이 필요합니다. 권한을 허용해 주세요.').message;
+        return;
+      case MicPermission.permanentlyDenied:
+        permissionPermanentlyDenied.value = true;
+        errorMessage.value =
+            const PermissionFailure('마이크 권한이 거부되었습니다. 설정에서 허용해 주세요.').message;
+        return;
+    }
+
     if (!_listenSpeech.isAvailable) {
       errorMessage.value = '음성 인식을 사용할 수 없습니다';
       return;
@@ -139,4 +163,6 @@ class TranslationController extends GetxController {
     if (translatedText.value.isEmpty) return;
     Clipboard.setData(ClipboardData(text: translatedText.value));
   }
+
+  Future<void> openAppSettings() => _permission.openSettings();
 }

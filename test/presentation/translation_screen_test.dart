@@ -8,15 +8,19 @@ import 'package:translate_ko_jp/domain/usecases/translate_text.dart';
 import 'package:translate_ko_jp/presentation/translation/translation_controller.dart';
 import 'package:translate_ko_jp/presentation/translation/translation_screen.dart';
 import '../fakes/fake_inference_service.dart';
+import '../fakes/fake_permission_service.dart';
 import '../fakes/fake_speech_service.dart';
 import '../fakes/fake_tts_service.dart';
 
-TranslationController _makeController() {
+TranslationController _makeController({
+  FakePermissionService? permission,
+}) {
   final repo = TranslationRepositoryImpl(FakeInferenceService());
   return TranslationController(
     translateText: TranslateText(repo),
     listenSpeech: ListenSpeech(FakeSpeechService()),
     speakText: SpeakText(FakeTtsService()),
+    permissionService: permission ?? FakePermissionService(),
   );
 }
 
@@ -37,6 +41,23 @@ void main() {
     await tester.pumpWidget(const GetMaterialApp(home: TranslationScreen()));
 
     expect(find.byType(Switch), findsOneWidget);
+    Get.reset();
+  });
+
+  testWidgets('설정 열기 button shown when permissionPermanentlyDenied is true', (tester) async {
+    final controller = _makeController();
+    Get.put<TranslationController>(controller);
+
+    await tester.pumpWidget(const GetMaterialApp(home: TranslationScreen()));
+
+    // Initially the button should not be shown
+    expect(find.text('설정 열기'), findsNothing);
+
+    // Simulate permanent denial
+    controller.permissionPermanentlyDenied.value = true;
+    await tester.pump();
+
+    expect(find.text('설정 열기'), findsOneWidget);
     Get.reset();
   });
 }
