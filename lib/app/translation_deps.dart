@@ -9,6 +9,7 @@ import '../data/repositories/translation_repository.dart';
 import '../domain/usecases/listen_speech.dart';
 import '../domain/usecases/speak_text.dart';
 import '../domain/usecases/translate_text.dart';
+import '../domain/usecases/save_translation.dart';
 import '../presentation/translation/translation_controller.dart';
 
 void registerTranslationDeps() {
@@ -25,11 +26,16 @@ void registerTranslationDeps() {
 
   // Controller
   Get.lazyPut<TranslationController>(
-    () => TranslationController(
-      translateText: TranslateText(Get.find<TranslationRepository>()),
-      listenSpeech: ListenSpeech(Get.find<SpeechService>()),
-      speakText: SpeakText(Get.find<TtsService>()),
-    ),
+    () {
+      final controller = TranslationController(
+        translateText: TranslateText(Get.find<TranslationRepository>()),
+        listenSpeech: ListenSpeech(Get.find<SpeechService>()),
+        speakText: SpeakText(Get.find<TtsService>()),
+      );
+      final save = Get.find<SaveTranslation>();
+      controller.onTranslated = (r) => save(r);
+      return controller;
+    },
     fenix: true,
   );
 }
