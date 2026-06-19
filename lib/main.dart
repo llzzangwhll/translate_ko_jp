@@ -1,51 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'services/gemma_service.dart';
-import 'views/model_setup_screen.dart';
-import 'views/translation_screen.dart';
+import 'app/app.dart';
+import 'app/bindings.dart';
+import 'app/routes.dart';
+import 'data/repositories/model_repository.dart';
+import 'domain/entities/model_status.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await registerAllDeps();
 
-  // Register global service
-  Get.put(GemmaService());
+  final modelRepo = Get.find<ModelRepository>();
+  final status = await modelRepo.currentStatus();
+  final ready = status == ModelStatus.loaded || status == ModelStatus.downloaded;
 
-  // Check if model exists to decide initial route
-  final gemma = Get.find<GemmaService>();
-  final modelExists = await gemma.checkModelExists();
-
-  runApp(TranslateApp(initialRoute: modelExists ? '/translate' : '/setup'));
-}
-
-class TranslateApp extends StatelessWidget {
-  final String initialRoute;
-
-  const TranslateApp({super.key, required this.initialRoute});
-
-  @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: '한일 번역기',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      debugShowCheckedModeBanner: false,
-      initialRoute: initialRoute,
-      getPages: [
-        GetPage(name: '/setup', page: () => const ModelSetupScreen()),
-        GetPage(name: '/translate', page: () => const TranslationScreen()),
-      ],
-    );
-  }
+  runApp(TranslateApp(
+    initialRoute: ready ? Routes.translation : Routes.setup,
+  ));
 }
