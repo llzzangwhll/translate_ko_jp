@@ -17,9 +17,44 @@ samples, guidance on mobile development, and a full API reference.
 
 ## 모델 설정 (Model setup)
 
-모델 다운로드 소스는 빌드/실행 시 `--dart-define` 플래그로 설정합니다.
+모델 다운로드 소스(URL · Hugging Face 토큰 · 체크섬)는 **빌드/실행 시 주입**합니다.
+소스 코드나 git 히스토리에는 토큰이 들어가지 않습니다.
 
-The model download source is configured at build/run time via `--dart-define` flags — no secrets are ever hardcoded.
+### 권장: 로컬 `secrets.json` (개인용, 한 번 설정하면 편함)
+
+토큰을 프로젝트 안에 두되 **git에서는 제외**합니다 (`secrets.json`은 `.gitignore`에 등록됨).
+
+1. 템플릿을 복사합니다:
+
+   ```sh
+   cp secrets.example.json secrets.json
+   ```
+
+2. `secrets.json`에 실제 값을 채웁니다:
+
+   ```json
+   {
+     "MODEL_URL": "https://huggingface.co/<org>/<repo>/resolve/main/<file>.task",
+     "HF_TOKEN": "hf_xxx",
+     "MODEL_SHA256": ""
+   }
+   ```
+
+3. 실행/빌드 시 파일을 주입합니다:
+
+   ```sh
+   flutter run   --dart-define-from-file=secrets.json
+   flutter build apk --dart-define-from-file=secrets.json
+   ```
+
+   > IDE(VS Code / Android Studio)에서는 실행 구성(run configuration)의
+   > "Additional run args"에 `--dart-define-from-file=secrets.json`를 한 번만 넣어두면
+   > 매번 자동 적용됩니다.
+
+⚠️ `secrets.json`은 절대 커밋하지 마세요. 이 저장소는 GitHub 리모트가 있어, 토큰이 커밋되면
+히스토리에 영구 기록되고 Hugging Face가 토큰을 자동 폐기할 수 있습니다. (`secrets.example.json`만 커밋됩니다.)
+
+### 대안: 개별 `--dart-define`
 
 ```sh
 flutter run \
@@ -31,7 +66,7 @@ flutter run \
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `MODEL_URL` | No (has default) | Full HTTPS resolve URL of the `.task` model file. Defaults to a best-guess Hugging Face URL — **verify the exact path before release**. |
-| `HF_TOKEN` | For private repos | Hugging Face API token. Injected as `Authorization: Bearer <token>` header. **Never commit this token.** |
+| `HF_TOKEN` | For private/gated repos | Hugging Face API token. Injected as `Authorization: Bearer <token>` header. Supply via `secrets.json` or `--dart-define`; **never commit it**. |
 | `MODEL_SHA256` | Recommended | Lowercase hex SHA-256 of the downloaded file. If omitted, checksum verification is skipped and a warning is logged. |
 
-For release builds, supply these via CI secrets (e.g. `--dart-define=HF_TOKEN=$HF_TOKEN`).
+`flutter test` / `flutter analyze`는 이 값들 없이도 동작합니다(기본값 사용, 다운로드는 하지 않음).

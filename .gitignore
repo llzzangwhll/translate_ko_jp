@@ -104,6 +104,10 @@ unlinked_spec.ds
 **/linux/flutter/generated_plugin_registrant.h
 **/linux/flutter/generated_plugins.cmake
 
+# Local secrets — model URL + Hugging Face token, supplied via
+# `--dart-define-from-file=secrets.json`. Keep the real file out of git.
+/secrets.json
+
 # Coverage
 coverage/
 
