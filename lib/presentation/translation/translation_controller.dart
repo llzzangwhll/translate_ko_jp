@@ -28,7 +28,7 @@ class TranslationController extends GetxController {
   final translatedText = ''.obs;
   final isListening = false.obs;
   final isTranslating = false.obs;
-  final autoSpeak = false.obs;
+  final autoSpeak = true.obs;
   final lastResult = Rxn<TranslationResult>();
   final errorMessage = ''.obs;
 
@@ -88,7 +88,11 @@ class TranslationController extends GetxController {
           lastResult.value = r;
           onTranslated?.call(r);
           if (autoSpeak.value) {
-            await _speakText(text: r.translatedText, language: targetLanguage);
+            try {
+              await _speakText(text: r.translatedText, language: targetLanguage);
+            } catch (e) {
+              errorMessage.value = '음성 재생 실패: $e';
+            }
           }
         case Err(failure: final f):
           errorMessage.value = f.message;
@@ -101,12 +105,20 @@ class TranslationController extends GetxController {
   Future<void> speakSource() async {
     final text = sourceText.value.trim();
     if (text.isEmpty) return;
-    await _speakText(text: text, language: sourceLanguage);
+    try {
+      await _speakText(text: text, language: sourceLanguage);
+    } catch (e) {
+      errorMessage.value = '음성 재생 실패: $e';
+    }
   }
 
   Future<void> speakTranslation() async {
     if (translatedText.value.isEmpty) return;
-    await _speakText(text: translatedText.value, language: targetLanguage);
+    try {
+      await _speakText(text: translatedText.value, language: targetLanguage);
+    } catch (e) {
+      errorMessage.value = '음성 재생 실패: $e';
+    }
   }
 
   void toggleDirection() {

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import '../core/result.dart';
 import '../data/services/inference_service.dart';
 import '../data/services/mediapipe_inference_service.dart';
 import '../data/services/speech_service.dart';
@@ -33,7 +35,12 @@ void registerTranslationDeps() {
         speakText: SpeakText(Get.find<TtsService>()),
       );
       final save = Get.find<SaveTranslation>();
-      controller.onTranslated = (r) => save(r);
+      controller.onTranslated = (r) async {
+        final res = await save(r);
+        if (res is Err<int>) {
+          debugPrint('History save failed: ${res.failure.message}');
+        }
+      };
       return controller;
     },
     fenix: true,

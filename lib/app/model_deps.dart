@@ -14,7 +14,7 @@ import 'routes.dart';
 /// Precondition: an [InferenceService] is already registered in GetX DI
 /// (owned by plan 01). This function only looks it up.
 void registerModelDeps({ModelConfig config = const ModelConfig.gemmaE2B()}) {
-  Get.lazyPut<ModelDownloadService>(() => ModelDownloadServiceImpl());
+  Get.lazyPut<ModelDownloadService>(() => ModelDownloadServiceImpl(), fenix: true);
 
   Get.lazyPut<ModelRepository>(
     () => ModelRepositoryImpl(
@@ -22,10 +22,12 @@ void registerModelDeps({ModelConfig config = const ModelConfig.gemmaE2B()}) {
       downloadService: Get.find<ModelDownloadService>(),
       config: config,
     ),
+    fenix: true,
   );
 
   Get.lazyPut<EnsureModelReady>(
     () => EnsureModelReady(Get.find<ModelRepository>()),
+    fenix: true,
   );
 
   Get.lazyPut<SetupController>(
@@ -34,5 +36,6 @@ void registerModelDeps({ModelConfig config = const ModelConfig.gemmaE2B()}) {
       ensureModelReady: Get.find<EnsureModelReady>(),
       onReady: () => Get.offAllNamed(Routes.translation),
     ),
+    fenix: true,
   );
 }

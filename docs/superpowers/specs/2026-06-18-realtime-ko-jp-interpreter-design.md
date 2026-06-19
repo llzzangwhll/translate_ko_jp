@@ -141,6 +141,7 @@ MediaPipe 구현은 `MethodChannel`로 네이티브에 위임. 향후 LiteRT-LM 
         → TranslationRepository.translate(text, dir)
             → 프롬프트 구성 → InferenceService.translate → 응답 후처리(cleanResponse)
         → Result<TranslationResult>
+   > **구현 참고**: 실제 구현에서 프롬프트 구성과 `cleanResponse`는 Android `MainActivity.kt` 및 iOS `GemmaInferenceHandler.swift` 네이티브 핸들러에서 처리하여 양 플랫폼 간 바이트 동일성을 보장한다. Dart `TranslationRepository`는 결과를 trim하여 `Result`로 감싸는 역할만 한다.
    → ViewModel.translatedText 갱신 → View 표시
    → SaveTranslation UseCase → HistoryRepository.save (자동 저장)
    → (옵션/자동) SpeakText UseCase → TtsService.speak(targetLocale)

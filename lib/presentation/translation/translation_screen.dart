@@ -23,6 +23,12 @@ class TranslationScreen extends GetView<TranslationController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Obx(() => SwitchListTile(
+                  title: const Text('번역 자동 읽기'),
+                  value: controller.autoSpeak.value,
+                  onChanged: (v) => controller.autoSpeak.value = v,
+                  contentPadding: EdgeInsets.zero,
+                )),
             Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
