@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:translate_ko_jp/core/result.dart';
 import 'package:translate_ko_jp/data/repositories/translation_repository.dart';
 import 'package:translate_ko_jp/domain/entities/language_direction.dart';
 import 'package:translate_ko_jp/domain/usecases/translate_text.dart';
