@@ -4,6 +4,7 @@ import '../presentation/setup/setup_screen.dart';
 import '../presentation/translation/translation_screen.dart';
 import '../presentation/history/history_screen.dart';
 import 'routes.dart';
+import 'theme.dart';
 
 class TranslateApp extends StatelessWidget {
   final String initialRoute;
@@ -14,19 +15,8 @@ class TranslateApp extends StatelessWidget {
     return GetMaterialApp(
       title: '한일 통역기',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF2563EB), brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       initialRoute: initialRoute,
       getPages: [
         GetPage(name: Routes.setup, page: () => const SetupScreen()),

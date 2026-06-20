@@ -21,7 +21,6 @@ class SetupScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('모델 설정'),
         centerTitle: true,
-        backgroundColor: colorScheme.primaryContainer,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -46,7 +45,7 @@ class SetupScreen extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: Colors.grey[600]),
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
