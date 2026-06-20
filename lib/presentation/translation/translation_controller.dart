@@ -38,6 +38,16 @@ class TranslationController extends GetxController {
   final errorMessage = ''.obs;
   final permissionPermanentlyDenied = false.obs;
 
+  /// Conversation log for the face-to-face interpreting UI: each completed
+  /// translation is appended (oldest first), so both speakers can scroll back
+  /// through the exchange.
+  final messages = <TranslationResult>[].obs;
+
+  /// The language currently being listened for, or null when idle. Drives which
+  /// mic button shows the active (recording) state.
+  Language? get activeSource =>
+      isListening.value ? direction.value.from : null;
+
   /// Integration seam (plan 05): called with each successful translation so
   /// the history flow can persist it. Not wired here.
   void Function(TranslationResult result)? onTranslated;
@@ -81,11 +91,26 @@ class TranslationController extends GetxController {
       return;
     }
     isListening.value = true;
+    sourceText.value = '';
     translatedText.value = '';
     await _listenSpeech(
       language: sourceLanguage,
       onResult: _onSpeechResult,
     );
+  }
+
+  /// Mic tap from the two-button conversation UI. Tapping while idle sets the
+  /// direction from the tapped language and starts listening; tapping while
+  /// listening stops and translates (regardless of which mic was tapped).
+  Future<void> toggleListenFor(Language source) async {
+    if (isListening.value) {
+      await toggleListening();
+      return;
+    }
+    direction.value = source == Language.ko
+        ? LanguageDirection.koToJa()
+        : LanguageDirection.jaToKo();
+    await toggleListening();
   }
 
   void _onSpeechResult(SpeechResult result) {
@@ -110,6 +135,7 @@ class TranslationController extends GetxController {
         case Ok(value: final r):
           translatedText.value = r.translatedText;
           lastResult.value = r;
+          messages.add(r);
           onTranslated?.call(r);
           if (autoSpeak.value) {
             try {
@@ -159,9 +185,33 @@ class TranslationController extends GetxController {
     errorMessage.value = '';
   }
 
+  /// Clears the on-screen conversation log (does not touch saved history).
+  void clearConversation() {
+    messages.clear();
+    clear();
+  }
+
   void copyTranslation() {
     if (translatedText.value.isEmpty) return;
     Clipboard.setData(ClipboardData(text: translatedText.value));
+  }
+
+  void copyText(String text) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+  }
+
+  /// Replays a logged message's translation in its target language.
+  Future<void> speakMessage(TranslationResult message) async {
+    if (message.translatedText.isEmpty) return;
+    try {
+      await _speakText(
+        text: message.translatedText,
+        language: message.direction.to,
+      );
+    } catch (e) {
+      errorMessage.value = '음성 재생 실패: $e';
+    }
   }
 
   Future<void> openAppSettings() => _permission.openSettings();

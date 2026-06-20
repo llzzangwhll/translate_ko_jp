@@ -1,83 +1,165 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/routes.dart';
+import '../../core/language.dart';
+import '../../domain/entities/translation_result.dart';
 import 'translation_controller.dart';
 
-class TranslationScreen extends GetView<TranslationController> {
+/// Face-to-face conversation interpreting screen.
+///
+/// The exchange is shown as a chat log (Korean turns on the left, Japanese on
+/// the right). Each speaker taps their own mic at the bottom, so there is no
+/// need to flip the direction manually between turns.
+class TranslationScreen extends StatefulWidget {
   const TranslationScreen({super.key});
+
+  @override
+  State<TranslationScreen> createState() => _TranslationScreenState();
+}
+
+class _TranslationScreenState extends State<TranslationScreen> {
+  final TranslationController controller = Get.find<TranslationController>();
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Keep the newest turn visible as the conversation grows.
+    ever<List<TranslationResult>>(controller.messages, (_) => _scrollToEnd());
+    ever<bool>(controller.isListening, (_) => _scrollToEnd());
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('한↔일 통역'),
+        title: const Text('대화 통역'),
         actions: [
+          _AutoSpeakToggle(controller: controller),
           IconButton(
             icon: const Icon(Icons.history),
+            tooltip: '히스토리',
             onPressed: () => Get.toNamed(Routes.history),
           ),
+          Obx(() => IconButton(
+                icon: const Icon(Icons.delete_sweep),
+                tooltip: '대화 지우기',
+                onPressed: controller.messages.isEmpty
+                    ? null
+                    : controller.clearConversation,
+              )),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Obx(() => SwitchListTile(
-                  title: const Text('번역 자동 읽기'),
-                  value: controller.autoSpeak.value,
-                  onChanged: (v) => controller.autoSpeak.value = v,
-                  contentPadding: EdgeInsets.zero,
-                )),
-            Obx(() => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(controller.sourceLanguage.nativeLabel),
-                    IconButton(
-                      icon: const Icon(Icons.swap_horiz),
-                      onPressed: controller.toggleDirection,
-                    ),
-                    Text(controller.targetLanguage.nativeLabel),
-                  ],
-                )),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Obx(() => _Panel(
-                    title: controller.sourceLanguage.nativeLabel,
+      body: Column(
+        children: [
+          Expanded(
+            child: Obx(() {
+              final messages = controller.messages;
+              final listening = controller.isListening.value;
+              final translating = controller.isTranslating.value;
+              final hasLiveBubble = listening || translating;
+
+              if (messages.isEmpty && !hasLiveBubble) {
+                return const _EmptyState();
+              }
+
+              return ListView.builder(
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+                itemCount: messages.length + (hasLiveBubble ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index < messages.length) {
+                    return _MessageBubble(
+                      entry: messages[index],
+                      controller: controller,
+                    );
+                  }
+                  return _LiveBubble(
+                    isKoSpeaker:
+                        controller.direction.value.from == Language.ko,
                     text: controller.sourceText.value,
-                    onSpeak: controller.speakSource,
-                  )),
+                    translating: translating,
+                  );
+                },
+              );
+            }),
+          ),
+          _ErrorArea(controller: controller),
+          _MicBar(controller: controller),
+        ],
+      ),
+    );
+  }
+}
+
+class _AutoSpeakToggle extends StatelessWidget {
+  final TranslationController controller;
+  const _AutoSpeakToggle({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final on = controller.autoSpeak.value;
+      return Row(
+        children: [
+          Icon(on ? Icons.volume_up : Icons.volume_off, size: 18),
+          Switch(
+            value: on,
+            onChanged: (v) => controller.autoSpeak.value = v,
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.forum_outlined,
+                size: 72, color: scheme.primary.withAlpha(120)),
+            const SizedBox(height: 16),
+            Text(
+              '대화를 시작해 보세요',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Obx(() => _Panel(
-                    title: controller.targetLanguage.nativeLabel,
-                    text: controller.isTranslating.value
-                        ? '번역 중...'
-                        : controller.translatedText.value,
-                    onSpeak: controller.speakTranslation,
-                    onCopy: controller.copyTranslation,
-                  )),
-            ),
-            const SizedBox(height: 12),
-            Obx(() => controller.errorMessage.value.isEmpty
-                ? const SizedBox.shrink()
-                : Text(controller.errorMessage.value,
-                    style: const TextStyle(color: Colors.red))),
-            Obx(() => controller.permissionPermanentlyDenied.value
-                ? OutlinedButton(
-                    onPressed: controller.openAppSettings,
-                    child: const Text('설정 열기'),
-                  )
-                : const SizedBox.shrink()),
-            Center(
-              child: Obx(() => FloatingActionButton.large(
-                    onPressed: controller.toggleListening,
-                    backgroundColor:
-                        controller.isListening.value ? Colors.red : null,
-                    child: Icon(
-                        controller.isListening.value ? Icons.stop : Icons.mic),
-                  )),
+            const SizedBox(height: 8),
+            Text(
+              '아래에서 말할 언어의 마이크를 누르고\n상대방과 번갈아 이야기하세요.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -86,41 +168,327 @@ class TranslationScreen extends GetView<TranslationController> {
   }
 }
 
-class _Panel extends StatelessWidget {
-  final String title;
-  final String text;
-  final VoidCallback? onSpeak;
-  final VoidCallback? onCopy;
-  const _Panel({
-    required this.title,
-    required this.text,
-    this.onSpeak,
-    this.onCopy,
+class _MessageBubble extends StatelessWidget {
+  final TranslationResult entry;
+  final TranslationController controller;
+  const _MessageBubble({required this.entry, required this.controller});
+
+  bool get _isKoSpeaker => entry.direction.from == Language.ko;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isKo = _isKoSpeaker;
+
+    final bubbleColor =
+        isKo ? scheme.surfaceContainerHighest : scheme.primaryContainer;
+    final translatedColor =
+        isKo ? scheme.onSurface : scheme.onPrimaryContainer;
+    final radius = Radius.circular(16);
+    final shape = BorderRadius.only(
+      topLeft: radius,
+      topRight: radius,
+      bottomLeft: isKo ? const Radius.circular(4) : radius,
+      bottomRight: isKo ? radius : const Radius.circular(4),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment:
+            isKo ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              entry.direction.from.nativeLabel,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.78,
+            ),
+            child: Container(
+              decoration: BoxDecoration(color: bubbleColor, borderRadius: shape),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.sourceText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: translatedColor.withAlpha(150),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    entry.translatedText,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: translatedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _BubbleAction(
+                        icon: Icons.volume_up,
+                        tooltip: '재생',
+                        color: translatedColor.withAlpha(160),
+                        onPressed: () => controller.speakMessage(entry),
+                      ),
+                      _BubbleAction(
+                        icon: Icons.copy,
+                        tooltip: '복사',
+                        color: translatedColor.withAlpha(160),
+                        onPressed: () =>
+                            controller.copyText(entry.translatedText),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BubbleAction extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onPressed;
+  const _BubbleAction({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return IconButton(
+      icon: Icon(icon, size: 18),
+      color: color,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 32),
+      onPressed: onPressed,
+    );
+  }
+}
+
+class _LiveBubble extends StatelessWidget {
+  final bool isKoSpeaker;
+  final String text;
+  final bool translating;
+  const _LiveBubble({
+    required this.isKoSpeaker,
+    required this.text,
+    required this.translating,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = translating ? '번역 중…' : '듣고 있어요…';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Align(
+        alignment: isKoSpeaker ? Alignment.centerLeft : Alignment.centerRight,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.78,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withAlpha(120),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.labelLarge),
-                const Spacer(),
-                if (onSpeak != null)
-                  IconButton(
-                      icon: const Icon(Icons.volume_up), onPressed: onSpeak),
-                if (onCopy != null)
-                  IconButton(icon: const Icon(Icons.copy), onPressed: onCopy),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      translating ? Icons.translate : Icons.mic,
+                      size: 14,
+                      color: translating ? scheme.primary : scheme.error,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                if (text.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(text, style: const TextStyle(fontSize: 16)),
+                ],
               ],
             ),
-            Expanded(child: SingleChildScrollView(child: Text(text))),
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ErrorArea extends StatelessWidget {
+  final TranslationController controller;
+  const _ErrorArea({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Obx(() {
+      final message = controller.errorMessage.value;
+      if (message.isEmpty) return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        color: scheme.errorContainer,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+            if (controller.permissionPermanentlyDenied.value)
+              TextButton(
+                onPressed: controller.openAppSettings,
+                child: const Text('설정 열기'),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _MicBar extends StatelessWidget {
+  final TranslationController controller;
+  const _MicBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Obx(() {
+          final active = controller.activeSource;
+          final listening = controller.isListening.value;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MicButton(
+                language: Language.ko,
+                isActive: active == Language.ko,
+                // While listening on one side, the other mic is disabled to
+                // keep the turn-taking unambiguous.
+                isDisabled: listening && active != Language.ko,
+                onPressed: () => controller.toggleListenFor(Language.ko),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 20),
+                child: Icon(Icons.swap_horiz, size: 22),
+              ),
+              _MicButton(
+                language: Language.ja,
+                isActive: active == Language.ja,
+                isDisabled: listening && active != Language.ja,
+                onPressed: () => controller.toggleListenFor(Language.ja),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _MicButton extends StatelessWidget {
+  final Language language;
+  final bool isActive;
+  final bool isDisabled;
+  final VoidCallback onPressed;
+  const _MicButton({
+    required this.language,
+    required this.isActive,
+    required this.isDisabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final Color bg;
+    final Color fg;
+    if (isActive) {
+      bg = scheme.error;
+      fg = scheme.onError;
+    } else if (isDisabled) {
+      bg = scheme.surfaceContainerHighest;
+      fg = scheme.onSurfaceVariant.withAlpha(100);
+    } else {
+      bg = scheme.primaryContainer;
+      fg = scheme.onPrimaryContainer;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          button: true,
+          label: '${language.nativeLabel} 마이크',
+          child: Material(
+            color: bg,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: isDisabled ? null : onPressed,
+              child: SizedBox(
+                width: 68,
+                height: 68,
+                child: Icon(isActive ? Icons.stop : Icons.mic,
+                    size: 32, color: fg),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          language.nativeLabel,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            color: isDisabled ? scheme.onSurfaceVariant.withAlpha(120) : null,
+          ),
+        ),
+      ],
     );
   }
 }

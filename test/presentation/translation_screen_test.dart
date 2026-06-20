@@ -25,12 +25,13 @@ TranslationController _makeController({
 }
 
 void main() {
-  testWidgets('renders source/translated panels and mic button', (tester) async {
+  testWidgets('renders two mic buttons (one per language)', (tester) async {
     Get.put<TranslationController>(_makeController());
 
     await tester.pumpWidget(const GetMaterialApp(home: TranslationScreen()));
 
-    expect(find.byIcon(Icons.mic), findsOneWidget);
+    // Korean and Japanese each get their own mic in the conversation UI.
+    expect(find.byIcon(Icons.mic), findsNWidgets(2));
     expect(find.byType(TranslationScreen), findsOneWidget);
     Get.reset();
   });
@@ -53,8 +54,9 @@ void main() {
     // Initially the button should not be shown
     expect(find.text('설정 열기'), findsNothing);
 
-    // Simulate permanent denial
+    // Simulate permanent denial (controller always sets both together)
     controller.permissionPermanentlyDenied.value = true;
+    controller.errorMessage.value = '마이크 권한이 거부되었습니다. 설정에서 허용해 주세요.';
     await tester.pump();
 
     expect(find.text('설정 열기'), findsOneWidget);
