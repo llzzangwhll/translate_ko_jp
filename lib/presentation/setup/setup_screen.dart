@@ -15,59 +15,135 @@ class SetupScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Get.find<SetupController>();
+    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('모델 설정'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(Icons.record_voice_over_outlined,
-                size: 80, color: colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              '번역 모델 설정',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '한일 번역을 위한 온디바이스 Gemma 모델을 내려받습니다.\n'
-              'Wi-Fi 환경을 권장합니다.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Obx(() {
-              // Reading observables here ensures Obx tracks them
-              final status = c.status.value;
-              final isBusy = c.isBusy.value;
-              final received = c.receivedBytes.value;
-              final total = c.totalBytes.value;
-              final error = c.errorMessage.value;
-              return _StatusSection(
-                controller: c,
-                mb: _mb,
-                status: status,
-                isBusy: isBusy,
-                receivedBytes: received,
-                totalBytes: total,
-                errorMessage: error,
-              );
-            }),
-          ],
+      appBar: AppBar(title: const Text('모델 설정')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      Text(
+                        '번역 모델을\n준비할게요',
+                        style: textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w600, height: 1.3),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '처음 한 번만 받으면 인터넷 없이\n오프라인으로 통역할 수 있어요.',
+                        style: textTheme.bodyLarge
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 28),
+                      const _InfoCard(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Obx(() {
+                // Reading observables here ensures Obx tracks them.
+                final status = c.status.value;
+                final isBusy = c.isBusy.value;
+                final received = c.receivedBytes.value;
+                final total = c.totalBytes.value;
+                final error = c.errorMessage.value;
+                return _StatusSection(
+                  controller: c,
+                  mb: _mb,
+                  status: status,
+                  isBusy: isBusy,
+                  receivedBytes: received,
+                  totalBytes: total,
+                  errorMessage: error,
+                );
+              }),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// Full-width summary of what will be downloaded — clean info rows, no mascot.
+class _InfoCard extends StatelessWidget {
+  const _InfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: const Column(
+        children: [
+          _InfoRow(
+            icon: Icons.translate,
+            label: '모델',
+            value: 'Gemma · 한↔일',
+          ),
+          Divider(height: 1, indent: 16, endIndent: 16),
+          _InfoRow(
+            icon: Icons.cloud_off_outlined,
+            label: '동작',
+            value: '오프라인 · 온디바이스',
+          ),
+          Divider(height: 1, indent: 16, endIndent: 16),
+          _InfoRow(
+            icon: Icons.wifi,
+            label: '권장',
+            value: 'Wi-Fi 환경',
+            isLast: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isLast;
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: scheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          ),
+        ],
       ),
     );
   }
@@ -95,6 +171,7 @@ class _StatusSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final scheme = Theme.of(context).colorScheme;
     switch (status) {
       case ModelStatus.downloading:
         final fraction = totalBytes > 0 ? receivedBytes / totalBytes : 0.0;
@@ -117,7 +194,7 @@ class _StatusSection extends StatelessWidget {
                   : '다운로드 준비 중...',
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             OutlinedButton.icon(
               key: const Key('setup-cancel-button'),
               onPressed: c.cancel,
@@ -132,18 +209,18 @@ class _StatusSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.red.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
+                color: scheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 errorMessage.isEmpty ? '오류가 발생했습니다.' : errorMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red[700], fontSize: 13),
+                style: TextStyle(color: scheme.onErrorContainer, fontSize: 13),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             FilledButton.icon(
               key: const Key('setup-retry-button'),
               onPressed: c.retry,
@@ -154,28 +231,18 @@ class _StatusSection extends StatelessWidget {
         );
 
       case ModelStatus.loaded:
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
-          ),
+        return const Padding(
+          padding: EdgeInsets.all(8),
+          child: Center(child: CircularProgressIndicator()),
         );
 
       case ModelStatus.notDownloaded:
       case ModelStatus.downloaded:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 52,
-              child: FilledButton.icon(
-                key: const Key('setup-download-button'),
-                onPressed: isBusy ? null : c.startDownload,
-                icon: const Icon(Icons.download),
-                label: const Text('모델 다운로드'),
-              ),
-            ),
-          ],
+        return FilledButton.icon(
+          key: const Key('setup-download-button'),
+          onPressed: isBusy ? null : c.startDownload,
+          icon: const Icon(Icons.download),
+          label: const Text('모델 다운로드'),
         );
     }
   }

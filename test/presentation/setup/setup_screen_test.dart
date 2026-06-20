@@ -31,7 +31,7 @@ void main() {
     await tester.pumpWidget(const GetMaterialApp(home: SetupScreen()));
     await tester.pump();
 
-    expect(find.text('번역 모델 설정'), findsOneWidget);
+    expect(find.text('번역 모델을\n준비할게요'), findsOneWidget);
     expect(find.byKey(const Key('setup-download-button')), findsOneWidget);
   });
 

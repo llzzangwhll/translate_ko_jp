@@ -138,29 +138,30 @@ class _EmptyState extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.forum_outlined,
-                size: 72, color: scheme.primary.withAlpha(120)),
-            const SizedBox(height: 16),
             Text(
               '대화를 시작해 보세요',
               style: Theme.of(context)
                   .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               '아래에서 말할 언어의 마이크를 누르고\n상대방과 번갈아 이야기하세요.',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.6,
+                  ),
             ),
+            const SizedBox(height: 24),
+            Icon(Icons.keyboard_double_arrow_down_rounded,
+                size: 26, color: scheme.primary.withAlpha(120)),
           ],
         ),
       ),
