@@ -15,12 +15,16 @@ class TranslateApp extends StatelessWidget {
       title: '한일 통역기',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB),
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.indigo, brightness: Brightness.dark),
+            seedColor: const Color(0xFF2563EB), brightness: Brightness.dark),
         useMaterial3: true,
       ),
       initialRoute: initialRoute,

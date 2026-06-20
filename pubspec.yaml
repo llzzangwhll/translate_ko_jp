@@ -25,6 +25,29 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   sqflite_common_ffi: ^2.3.3
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
+
+# App launcher icon — generated with `dart run flutter_launcher_icons`.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 26
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/logo.png"
+
+# Splash screen — generated with `dart run flutter_native_splash:create`.
+# Logo only (no text) on a white background, per the approved design.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/icon/logo.png"
+  android: true
+  ios: false
+  web: false
+  android_12:
+    image: "assets/icon/logo.png"
+    color: "#FFFFFF"

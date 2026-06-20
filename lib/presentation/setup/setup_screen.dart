@@ -28,7 +28,7 @@ class SetupScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.smart_toy_outlined,
+            Icon(Icons.record_voice_over_outlined,
                 size: 80, color: colorScheme.primary),
             const SizedBox(height: 16),
             Text(
