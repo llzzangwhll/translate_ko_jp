@@ -6,6 +6,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:largeHeap="true">
+        <!-- Required by the LiteRT-LM GPU (OpenCL) backend. Optional so the app
+             still installs on devices without these libraries (CPU fallback). -->
+        <uses-native-library android:name="libOpenCL.so" android:required="false"/>
+        <uses-native-library android:name="libvndksupport.so" android:required="false"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

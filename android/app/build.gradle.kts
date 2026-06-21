@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -12,10 +14,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     defaultConfig {
@@ -37,13 +35,20 @@ android {
     }
 }
 
+// Kotlin 2.x compilerOptions DSL (replaces the removed `kotlinOptions` block).
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+    }
+}
+
 flutter {
     source = "../.."
 }
 
 dependencies {
-    // 0.10.24+ is required to load LiteRT-LM (.litertlm) models such as
-    // Gemma 3n E2B. Older versions try to parse them as legacy TFLite bundles
-    // and fail with "RET_CHECK ... Error building tflite model".
-    implementation("com.google.mediapipe:tasks-genai:0.10.35")
+    // LiteRT-LM runtime: runs Gemma 4 (.litertlm) on-device with real GPU
+    // acceleration (OpenCL, ~52 tok/s on Android). Replaces the older MediaPipe
+    // tasks-genai LLM path, which is in maintenance mode and fell back to CPU.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.13.1")
 }

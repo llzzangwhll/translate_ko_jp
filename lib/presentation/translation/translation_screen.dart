@@ -162,7 +162,6 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             _WarmUpButton(controller: controller),
-            const SizedBox(height: 16),
             _BackendBadge(controller: controller),
           ],
         ),
@@ -171,8 +170,8 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Small diagnostic chip showing whether the inference engine is running on
-/// the GPU or fell back to the CPU. Helps explain translation speed.
+/// Warning shown only when the inference engine fell back to the CPU (slow).
+/// When GPU acceleration is active, nothing is shown — that's the happy path.
 class _BackendBadge extends StatelessWidget {
   final TranslationController controller;
   const _BackendBadge({required this.controller});
@@ -182,25 +181,19 @@ class _BackendBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Obx(() {
       final b = controller.engineBackend.value;
-      if (b.isEmpty || b == 'none') return const SizedBox.shrink();
-      final isGpu = b == 'gpu';
-      final label = isGpu
-          ? 'GPU 가속 사용 중'
-          : b == 'cpu'
-              ? 'CPU 사용 중 (느림)'
-              : '엔진: $b';
-      final color = isGpu ? scheme.primary : scheme.error;
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isGpu ? Icons.memory : Icons.warning_amber_rounded,
-              size: 15, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: color),
-          ),
-        ],
+      // Hide on the happy path (GPU) and before the backend is known.
+      if (b.isEmpty || b == 'none' || b == 'gpu') return const SizedBox.shrink();
+      final label = b == 'cpu' ? 'CPU 사용 중 (느림)' : '엔진: $b';
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 15, color: scheme.error),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 12, color: scheme.error)),
+          ],
+        ),
       );
     });
   }

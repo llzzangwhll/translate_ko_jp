@@ -6,7 +6,11 @@ import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.Message
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -28,9 +32,11 @@ class MainActivity : FlutterActivity() {
         )
     }
 
-    private var llmInference: LlmInference? = null
-    // Which backend the loaded engine is actually running on: "gpu", "cpu",
-    // or "none" when nothing is loaded. Surfaced to Flutter for diagnostics.
+    // LiteRT-LM engine. Unlike the older MediaPipe path, this runtime actually
+    // accelerates .litertlm models (Gemma 4 E2B) on the GPU (OpenCL).
+    private var engine: Engine? = null
+    // Backend the loaded engine runs on: "gpu", "cpu", or "none". Surfaced to
+    // Flutter for the on-screen diagnostic badge.
     @Volatile private var activeBackend: String = "none"
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -72,21 +78,23 @@ class MainActivity : FlutterActivity() {
 
                             Log.i(TAG, "Loading model from: $modelPath (${file.length() / 1024 / 1024}MB)")
 
-                            // Close previous instance if any
-                            llmInference?.close()
+                            // Release any previous engine.
+                            engine?.close()
+                            engine = null
+                            activeBackend = "none"
 
-                            // Prefer the GPU backend (much faster than CPU for a
-                            // 2B+ model). Some .litertlm builds are CPU-only, so
-                            // fall back to CPU if GPU initialization fails.
-                            llmInference = try {
-                                val engine = createEngine(modelPath, LlmInference.Backend.GPU)
+                            // Prefer the GPU backend (52 tok/s on Android for
+                            // E2B). Fall back to CPU if GPU init fails on this
+                            // device/driver.
+                            engine = try {
+                                val e = createEngine(modelPath, Backend.GPU())
                                 activeBackend = "gpu"
-                                engine
+                                e
                             } catch (e: Exception) {
                                 Log.w(TAG, "GPU backend unavailable, falling back to CPU", e)
-                                val engine = createEngine(modelPath, LlmInference.Backend.CPU)
+                                val e2 = createEngine(modelPath, Backend.CPU())
                                 activeBackend = "cpu"
-                                engine
+                                e2
                             }
                             Log.i(TAG, "Model loaded successfully on backend=$activeBackend")
                             mainHandler.post { result.success(true) }
@@ -104,7 +112,8 @@ class MainActivity : FlutterActivity() {
                     val sourceLang = call.argument<String>("sourceLang") ?: "Korean"
                     val targetLang = call.argument<String>("targetLang") ?: "Japanese"
 
-                    if (llmInference == null) {
+                    val e = engine
+                    if (e == null) {
                         result.error("NOT_LOADED", "모델이 로드되지 않았습니다", null)
                         return@setMethodCallHandler
                     }
@@ -114,49 +123,56 @@ class MainActivity : FlutterActivity() {
                             val prompt = buildTranslationPrompt(text, sourceLang, targetLang)
                             Log.d(TAG, "Prompt: $prompt")
 
-                            val response = llmInference!!.generateResponse(prompt)
-                            Log.d(TAG, "Raw response: $response")
-                            val cleaned = cleanResponse(response, text)
+                            // Each translation is independent — use a fresh
+                            // conversation so prior turns don't leak into it.
+                            val raw = e.createConversation().use { conversation ->
+                                messageText(conversation.sendMessage(prompt))
+                            }
+                            Log.d(TAG, "Raw response: $raw")
+                            val cleaned = cleanResponse(raw, text)
                             Log.d(TAG, "Response: $cleaned")
 
                             mainHandler.post { result.success(cleaned) }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Translation failed", e)
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Translation failed", e2)
                             mainHandler.post {
-                                result.error("TRANSLATE_FAILED", "번역 실패: ${e.message}", null)
+                                result.error("TRANSLATE_FAILED", "번역 실패: ${e2.message}", null)
                             }
                         }
                     }
                 }
 
                 "warmUp" -> {
-                    if (llmInference == null) {
+                    val e = engine
+                    if (e == null) {
                         result.error("NOT_LOADED", "모델이 로드되지 않았습니다", null)
                         return@setMethodCallHandler
                     }
                     executor.execute {
                         try {
                             // A tiny throwaway inference pays the one-time cost
-                            // (graph build, GPU shader compile, KV-cache alloc)
-                            // so the user's first real translation is fast.
-                            llmInference!!.generateResponse("hi")
+                            // (GPU shader compile, KV-cache alloc) up front so
+                            // the user's first real translation is fast.
+                            e.createConversation().use { conversation ->
+                                conversation.sendMessage("hi")
+                            }
                             Log.i(TAG, "Warm-up inference done")
                             mainHandler.post { result.success(true) }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Warm-up failed", e)
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Warm-up failed", e2)
                             mainHandler.post {
-                                result.error("WARMUP_FAILED", "워밍업 실패: ${e.message}", null)
+                                result.error("WARMUP_FAILED", "워밍업 실패: ${e2.message}", null)
                             }
                         }
                     }
                 }
 
                 "isModelLoaded" -> {
-                    result.success(llmInference != null)
+                    result.success(engine != null)
                 }
 
                 "activeBackend" -> {
-                    result.success(if (llmInference != null) activeBackend else "none")
+                    result.success(if (engine != null) activeBackend else "none")
                 }
 
                 else -> result.notImplemented()
@@ -164,13 +180,22 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun createEngine(modelPath: String, backend: LlmInference.Backend): LlmInference {
-        val options = LlmInference.LlmInferenceOptions.builder()
-            .setModelPath(modelPath)
-            .setMaxTokens(512)
-            .setPreferredBackend(backend)
-            .build()
-        return LlmInference.createFromOptions(applicationContext, options)
+    // A LiteRT-LM Message carries a list of Content parts; the model's reply is
+    // in the Content.Text part(s). Concatenate them into a plain string.
+    private fun messageText(message: Message): String =
+        message.contents.contents
+            .filterIsInstance<Content.Text>()
+            .joinToString("") { it.text }
+
+    private fun createEngine(modelPath: String, backend: Backend): Engine {
+        val config = EngineConfig(
+            modelPath = modelPath,
+            backend = backend,
+        )
+        val engine = Engine(config)
+        // Synchronous; can take several seconds. Always called on [executor].
+        engine.initialize()
+        return engine
     }
 
     private fun findModelFile(): String? {
@@ -192,7 +217,7 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        // Scan for any .bin or .task file in app directories
+        // Scan for any .litertlm/.task/.bin file in app directories
         val appDirs = listOf(filesDir, File(filesDir, "models"), getExternalFilesDir(null)).filterNotNull()
         for (dir in appDirs) {
             if (dir.exists()) {
@@ -217,25 +242,18 @@ class MainActivity : FlutterActivity() {
         val source = if (sourceLang == "Korean") "Korean" else "Japanese"
         val target = if (targetLang == "Korean") "Korean" else "Japanese"
 
-        // Plain instruction with the source sentence given directly (no
-        // "Korean:/Japanese:" scaffolding, which the model tends to echo back).
-        val instruction =
-            "Translate the following $source sentence into $target. " +
+        // Plain instruction. LiteRT-LM's Conversation applies the model's chat
+        // template itself, so we must NOT add <start_of_turn> markers here.
+        return "Translate the following $source sentence into $target. " +
             "Output only the $target translation — no explanations, no labels, " +
             "and do not repeat the original sentence.\n\n$text"
-
-        // Gemma instruction-tuned chat template. Wrapping the request in
-        // <start_of_turn>/<end_of_turn> lets the engine recognize the turn
-        // boundary and stop generating, instead of spilling turn tokens.
-        return "<start_of_turn>user\n$instruction<end_of_turn>\n<start_of_turn>model\n"
     }
 
     private fun cleanResponse(response: String, sourceText: String): String {
         var cleaned = response
 
-        // The model can emit special/turn tokens (e.g. <end_of_turn>, <turn/>,
-        // <eos>). Cut everything from the first such marker, then strip any
-        // remaining angle-bracket tags so they never reach the UI.
+        // Defensive: strip any special/turn tokens or angle-bracket tags that
+        // might slip into the text.
         val markers = listOf("<end_of_turn>", "<start_of_turn>", "<turn/>", "<turn>", "<eos>")
         for (m in markers) {
             val idx = cleaned.indexOf(m)
@@ -262,7 +280,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
-        llmInference?.close()
+        engine?.close()
+        engine = null
         executor.shutdown()
         super.onDestroy()
     }
