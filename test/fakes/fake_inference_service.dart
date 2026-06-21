@@ -30,6 +30,11 @@ class FakeInferenceService implements InferenceService {
   @override
   Future<void> warmUp() async => warmUpCalled = true;
 
+  String backend = 'gpu';
+
+  @override
+  Future<String> activeBackend() async => backend;
+
   @override
   Future<String> translate({
     required String text,

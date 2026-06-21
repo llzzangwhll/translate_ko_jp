@@ -270,17 +270,23 @@ class _StatusSection extends StatelessWidget {
 
       case ModelStatus.downloaded:
         // File is on disk; "다음" loads it into the engine and navigates.
-        return FilledButton.icon(
+        return FilledButton(
           key: const Key('setup-next-button'),
           onPressed: isBusy ? null : c.proceed,
-          icon: isBusy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+          child: isBusy
+              ? const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Text('모델 준비 중'),
+                  ],
                 )
-              : const Icon(Icons.arrow_forward),
-          label: Text(isBusy ? '모델 준비 중…' : '다음'),
+              : const Text('다음'),
         );
 
       case ModelStatus.notDownloaded:

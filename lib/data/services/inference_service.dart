@@ -10,6 +10,10 @@ abstract interface class InferenceService {
   /// translation is fast. Requires the model to already be loaded.
   Future<void> warmUp();
 
+  /// The backend the loaded engine is running on: 'gpu', 'cpu', 'none' (nothing
+  /// loaded), or 'unknown'. For diagnostics/UI.
+  Future<String> activeBackend();
+
   Future<String> translate({
     required String text,
     required LanguageDirection direction,

@@ -35,6 +35,9 @@ class FakeInferenceServiceModel implements InferenceService {
   Future<void> warmUp() async {}
 
   @override
+  Future<String> activeBackend() async => loadedValue ? 'gpu' : 'none';
+
+  @override
   Future<String> translate({
     required String text,
     required LanguageDirection direction,

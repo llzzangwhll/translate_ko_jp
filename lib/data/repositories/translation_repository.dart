@@ -13,6 +13,9 @@ abstract interface class TranslationRepository {
 
   /// Warms up the inference engine so the first real translation is fast.
   Future<Result<void>> warmUp();
+
+  /// The backend the loaded engine runs on ('gpu', 'cpu', 'none', 'unknown').
+  Future<String> activeBackend();
 }
 
 class TranslationRepositoryImpl implements TranslationRepository {
@@ -52,6 +55,15 @@ class TranslationRepositoryImpl implements TranslationRepository {
       return Err(InferenceFailure(e.message ?? '워밍업 실패'));
     } catch (e) {
       return Err(InferenceFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<String> activeBackend() async {
+    try {
+      return await _inference.activeBackend();
+    } catch (_) {
+      return 'unknown';
     }
   }
 }

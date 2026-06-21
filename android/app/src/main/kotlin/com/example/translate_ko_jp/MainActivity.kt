@@ -29,6 +29,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private var llmInference: LlmInference? = null
+    // Which backend the loaded engine is actually running on: "gpu", "cpu",
+    // or "none" when nothing is loaded. Surfaced to Flutter for diagnostics.
+    @Volatile private var activeBackend: String = "none"
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -76,12 +79,16 @@ class MainActivity : FlutterActivity() {
                             // 2B+ model). Some .litertlm builds are CPU-only, so
                             // fall back to CPU if GPU initialization fails.
                             llmInference = try {
-                                createEngine(modelPath, LlmInference.Backend.GPU)
+                                val engine = createEngine(modelPath, LlmInference.Backend.GPU)
+                                activeBackend = "gpu"
+                                engine
                             } catch (e: Exception) {
                                 Log.w(TAG, "GPU backend unavailable, falling back to CPU", e)
-                                createEngine(modelPath, LlmInference.Backend.CPU)
+                                val engine = createEngine(modelPath, LlmInference.Backend.CPU)
+                                activeBackend = "cpu"
+                                engine
                             }
-                            Log.i(TAG, "Model loaded successfully")
+                            Log.i(TAG, "Model loaded successfully on backend=$activeBackend")
                             mainHandler.post { result.success(true) }
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to load model", e)
@@ -145,6 +152,10 @@ class MainActivity : FlutterActivity() {
 
                 "isModelLoaded" -> {
                     result.success(llmInference != null)
+                }
+
+                "activeBackend" -> {
+                    result.success(if (llmInference != null) activeBackend else "none")
                 }
 
                 else -> result.notImplemented()

@@ -38,6 +38,16 @@ class MediaPipeInferenceService implements InferenceService {
   }
 
   @override
+  Future<String> activeBackend() async {
+    try {
+      final r = await _channel.invokeMethod('activeBackend');
+      return r is String ? r : 'unknown';
+    } on PlatformException {
+      return 'unknown';
+    }
+  }
+
+  @override
   Future<String> translate({
     required String text,
     required LanguageDirection direction,

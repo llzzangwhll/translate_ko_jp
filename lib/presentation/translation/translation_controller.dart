@@ -10,6 +10,7 @@ import '../../domain/usecases/listen_speech.dart';
 import '../../domain/usecases/speak_text.dart';
 import '../../domain/usecases/translate_text.dart';
 import '../../domain/usecases/warm_up_model.dart';
+import '../../domain/usecases/get_engine_backend.dart';
 import '../../data/services/permission_service.dart';
 import '../../data/services/speech_service.dart';
 
@@ -19,6 +20,7 @@ class TranslationController extends GetxController {
   final SpeakText _speakText;
   final PermissionService _permission;
   final WarmUpModel? _warmUpModel;
+  final GetEngineBackend? _getEngineBackend;
 
   TranslationController({
     required TranslateText translateText,
@@ -26,11 +28,13 @@ class TranslationController extends GetxController {
     required SpeakText speakText,
     required PermissionService permissionService,
     WarmUpModel? warmUpModel,
+    GetEngineBackend? getEngineBackend,
   })  : _translateText = translateText,
         _listenSpeech = listenSpeech,
         _speakText = speakText,
         _permission = permissionService,
-        _warmUpModel = warmUpModel;
+        _warmUpModel = warmUpModel,
+        _getEngineBackend = getEngineBackend;
 
   final direction = LanguageDirection.koToJa().obs;
   final sourceText = ''.obs;
@@ -46,6 +50,10 @@ class TranslationController extends GetxController {
   /// button spinner; [warmedUp] hides/disables it once done.
   final isWarmingUp = false.obs;
   final warmedUp = false.obs;
+
+  /// Backend the engine is running on ('gpu', 'cpu', 'none', 'unknown', or
+  /// empty before it's been queried). Shown to the user for diagnostics.
+  final engineBackend = ''.obs;
 
   /// Conversation log for the face-to-face interpreting UI: each completed
   /// translation is appended (oldest first), so both speakers can scroll back
@@ -68,6 +76,10 @@ class TranslationController extends GetxController {
   Future<void> onReady() async {
     super.onReady();
     await _listenSpeech.initialize();
+    final getBackend = _getEngineBackend;
+    if (getBackend != null) {
+      engineBackend.value = await getBackend();
+    }
   }
 
   Future<void> toggleListening() async {

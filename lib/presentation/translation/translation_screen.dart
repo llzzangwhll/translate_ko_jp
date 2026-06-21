@@ -162,10 +162,47 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             _WarmUpButton(controller: controller),
+            const SizedBox(height: 16),
+            _BackendBadge(controller: controller),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Small diagnostic chip showing whether the inference engine is running on
+/// the GPU or fell back to the CPU. Helps explain translation speed.
+class _BackendBadge extends StatelessWidget {
+  final TranslationController controller;
+  const _BackendBadge({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Obx(() {
+      final b = controller.engineBackend.value;
+      if (b.isEmpty || b == 'none') return const SizedBox.shrink();
+      final isGpu = b == 'gpu';
+      final label = isGpu
+          ? 'GPU 가속 사용 중'
+          : b == 'cpu'
+              ? 'CPU 사용 중 (느림)'
+              : '엔진: $b';
+      final color = isGpu ? scheme.primary : scheme.error;
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isGpu ? Icons.memory : Icons.warning_amber_rounded,
+              size: 15, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: color),
+          ),
+        ],
+      );
+    });
   }
 }
 
