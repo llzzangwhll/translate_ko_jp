@@ -162,9 +162,6 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             _WarmUpButton(controller: controller),
-            const SizedBox(height: 24),
-            Icon(Icons.keyboard_double_arrow_down_rounded,
-                size: 26, color: scheme.primary.withAlpha(120)),
           ],
         ),
       ),
@@ -206,7 +203,7 @@ class _WarmUpButton extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.bolt, size: 18),
-        label: Text(warming ? '워밍업 중…' : '미리 워밍업'),
+        label: Text(warming ? '워밍업 중' : '미리 워밍업'),
       );
     });
   }

@@ -72,12 +72,15 @@ class MainActivity : FlutterActivity() {
                             // Close previous instance if any
                             llmInference?.close()
 
-                            val options = LlmInference.LlmInferenceOptions.builder()
-                                .setModelPath(modelPath)
-                                .setMaxTokens(512)
-                                .build()
-
-                            llmInference = LlmInference.createFromOptions(applicationContext, options)
+                            // Prefer the GPU backend (much faster than CPU for a
+                            // 2B+ model). Some .litertlm builds are CPU-only, so
+                            // fall back to CPU if GPU initialization fails.
+                            llmInference = try {
+                                createEngine(modelPath, LlmInference.Backend.GPU)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "GPU backend unavailable, falling back to CPU", e)
+                                createEngine(modelPath, LlmInference.Backend.CPU)
+                            }
                             Log.i(TAG, "Model loaded successfully")
                             mainHandler.post { result.success(true) }
                         } catch (e: Exception) {
@@ -149,6 +152,15 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun createEngine(modelPath: String, backend: LlmInference.Backend): LlmInference {
+        val options = LlmInference.LlmInferenceOptions.builder()
+            .setModelPath(modelPath)
+            .setMaxTokens(512)
+            .setPreferredBackend(backend)
+            .build()
+        return LlmInference.createFromOptions(applicationContext, options)
+    }
+
     private fun findModelFile(): String? {
         val searchDirs = listOf(
             filesDir,
@@ -193,14 +205,30 @@ class MainActivity : FlutterActivity() {
         val sourceLabel = if (sourceLang == "Korean") "한국어" else "日本語"
         val targetLabel = if (targetLang == "Korean") "한국어" else "日本語"
 
-        return """Translate the following $sourceLabel text to $targetLabel. Output ONLY the translation, nothing else.
+        val instruction = """Translate the following $sourceLabel text to $targetLabel. Output ONLY the translation, nothing else.
 
 $sourceLabel: $text
 $targetLabel:"""
+
+        // Gemma instruction-tuned chat template. Wrapping the request in
+        // <start_of_turn>/<end_of_turn> lets the engine recognize the turn
+        // boundary and stop generating, instead of spilling turn tokens.
+        return "<start_of_turn>user\n$instruction<end_of_turn>\n<start_of_turn>model\n"
     }
 
     private fun cleanResponse(response: String, targetLang: String): String {
-        var cleaned = response.trim()
+        var cleaned = response
+
+        // The model can emit special/turn tokens (e.g. <end_of_turn>, <turn/>,
+        // <eos>). Cut everything from the first such marker, then strip any
+        // remaining angle-bracket tags so they never reach the UI.
+        val markers = listOf("<end_of_turn>", "<start_of_turn>", "<turn/>", "<turn>", "<eos>")
+        for (m in markers) {
+            val idx = cleaned.indexOf(m)
+            if (idx >= 0) cleaned = cleaned.substring(0, idx)
+        }
+        cleaned = cleaned.replace(Regex("<[^>]*>"), "").trim()
+
         val prefixes = listOf("한국어:", "日本語:", "Korean:", "Japanese:", "Translation:")
         for (prefix in prefixes) {
             if (cleaned.startsWith(prefix, ignoreCase = true)) {
