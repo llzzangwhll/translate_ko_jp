@@ -115,7 +115,8 @@ class MainActivity : FlutterActivity() {
                             Log.d(TAG, "Prompt: $prompt")
 
                             val response = llmInference!!.generateResponse(prompt)
-                            val cleaned = cleanResponse(response, targetLang)
+                            Log.d(TAG, "Raw response: $response")
+                            val cleaned = cleanResponse(response, text)
                             Log.d(TAG, "Response: $cleaned")
 
                             mainHandler.post { result.success(cleaned) }
@@ -213,13 +214,15 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun buildTranslationPrompt(text: String, sourceLang: String, targetLang: String): String {
-        val sourceLabel = if (sourceLang == "Korean") "한국어" else "日本語"
-        val targetLabel = if (targetLang == "Korean") "한국어" else "日本語"
+        val source = if (sourceLang == "Korean") "Korean" else "Japanese"
+        val target = if (targetLang == "Korean") "Korean" else "Japanese"
 
-        val instruction = """Translate the following $sourceLabel text to $targetLabel. Output ONLY the translation, nothing else.
-
-$sourceLabel: $text
-$targetLabel:"""
+        // Plain instruction with the source sentence given directly (no
+        // "Korean:/Japanese:" scaffolding, which the model tends to echo back).
+        val instruction =
+            "Translate the following $source sentence into $target. " +
+            "Output only the $target translation — no explanations, no labels, " +
+            "and do not repeat the original sentence.\n\n$text"
 
         // Gemma instruction-tuned chat template. Wrapping the request in
         // <start_of_turn>/<end_of_turn> lets the engine recognize the turn
@@ -227,7 +230,7 @@ $targetLabel:"""
         return "<start_of_turn>user\n$instruction<end_of_turn>\n<start_of_turn>model\n"
     }
 
-    private fun cleanResponse(response: String, targetLang: String): String {
+    private fun cleanResponse(response: String, sourceText: String): String {
         var cleaned = response
 
         // The model can emit special/turn tokens (e.g. <end_of_turn>, <turn/>,
@@ -238,17 +241,24 @@ $targetLabel:"""
             val idx = cleaned.indexOf(m)
             if (idx >= 0) cleaned = cleaned.substring(0, idx)
         }
-        cleaned = cleaned.replace(Regex("<[^>]*>"), "").trim()
+        cleaned = cleaned.replace(Regex("<[^>]*>"), "")
 
-        val prefixes = listOf("한국어:", "日本語:", "Korean:", "Japanese:", "Translation:")
-        for (prefix in prefixes) {
-            if (cleaned.startsWith(prefix, ignoreCase = true)) {
-                cleaned = cleaned.removePrefix(prefix).trim()
+        val prefixes = listOf("한국어:", "日本語:", "Korean:", "Japanese:", "Translation:", "번역:", "翻訳:")
+        val src = sourceText.trim()
+
+        // Strip per-line labels and drop blank lines or lines that merely echo
+        // the source sentence, then take the first real translation line.
+        val pick = cleaned.lines()
+            .map { line ->
+                var l = line.trim()
+                for (prefix in prefixes) {
+                    if (l.startsWith(prefix, ignoreCase = true)) l = l.removePrefix(prefix).trim()
+                }
+                l
             }
-        }
-        // Take only the first meaningful line
-        cleaned = cleaned.lines().firstOrNull { it.isNotBlank() }?.trim() ?: cleaned
-        return cleaned
+            .firstOrNull { it.isNotBlank() && it != src }
+
+        return pick ?: cleaned.trim()
     }
 
     override fun onDestroy() {
