@@ -33,6 +33,11 @@ class MediaPipeInferenceService implements InferenceService {
   }
 
   @override
+  Future<void> warmUp() async {
+    await _channel.invokeMethod('warmUp');
+  }
+
+  @override
   Future<String> translate({
     required String text,
     required LanguageDirection direction,

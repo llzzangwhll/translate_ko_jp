@@ -10,6 +10,9 @@ abstract interface class TranslationRepository {
     required String text,
     required LanguageDirection direction,
   });
+
+  /// Warms up the inference engine so the first real translation is fast.
+  Future<Result<void>> warmUp();
 }
 
 class TranslationRepositoryImpl implements TranslationRepository {
@@ -35,6 +38,18 @@ class TranslationRepositoryImpl implements TranslationRepository {
       ));
     } on PlatformException catch (e) {
       return Err(InferenceFailure(e.message ?? '번역 실패'));
+    } catch (e) {
+      return Err(InferenceFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> warmUp() async {
+    try {
+      await _inference.warmUp();
+      return const Ok(null);
+    } on PlatformException catch (e) {
+      return Err(InferenceFailure(e.message ?? '워밍업 실패'));
     } catch (e) {
       return Err(InferenceFailure(e.toString()));
     }

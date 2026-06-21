@@ -79,19 +79,6 @@ class MainActivity : FlutterActivity() {
 
                             llmInference = LlmInference.createFromOptions(applicationContext, options)
                             Log.i(TAG, "Model loaded successfully")
-
-                            // Warm up while the splash is still showing: a tiny
-                            // throwaway inference pays the one-time cost (graph
-                            // build, GPU shader compile, KV-cache alloc) up front
-                            // so the user's first real translation is fast.
-                            // Non-fatal: a failure here must not block loading.
-                            try {
-                                llmInference!!.generateResponse("hi")
-                                Log.i(TAG, "Warm-up inference done")
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Warm-up inference failed (non-fatal)", e)
-                            }
-
                             mainHandler.post { result.success(true) }
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to load model", e)
@@ -126,6 +113,28 @@ class MainActivity : FlutterActivity() {
                             Log.e(TAG, "Translation failed", e)
                             mainHandler.post {
                                 result.error("TRANSLATE_FAILED", "번역 실패: ${e.message}", null)
+                            }
+                        }
+                    }
+                }
+
+                "warmUp" -> {
+                    if (llmInference == null) {
+                        result.error("NOT_LOADED", "모델이 로드되지 않았습니다", null)
+                        return@setMethodCallHandler
+                    }
+                    executor.execute {
+                        try {
+                            // A tiny throwaway inference pays the one-time cost
+                            // (graph build, GPU shader compile, KV-cache alloc)
+                            // so the user's first real translation is fast.
+                            llmInference!!.generateResponse("hi")
+                            Log.i(TAG, "Warm-up inference done")
+                            mainHandler.post { result.success(true) }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Warm-up failed", e)
+                            mainHandler.post {
+                                result.error("WARMUP_FAILED", "워밍업 실패: ${e.message}", null)
                             }
                         }
                     }

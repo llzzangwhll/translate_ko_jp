@@ -32,6 +32,9 @@ class FakeInferenceServiceModel implements InferenceService {
   }
 
   @override
+  Future<void> warmUp() async {}
+
+  @override
   Future<String> translate({
     required String text,
     required LanguageDirection direction,

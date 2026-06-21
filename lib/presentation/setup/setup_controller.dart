@@ -69,7 +69,9 @@ class SetupController extends GetxController {
     }
   }
 
-  /// Downloads the configured model, verifies/loads it, then navigates.
+  /// Downloads the configured model. On success the screen shows an enabled
+  /// "다음" button ([ModelStatus.downloaded]); loading into the engine happens
+  /// later in [proceed]. Does not navigate.
   Future<void> startDownload() async {
     isBusy.value = true;
     errorMessage.value = '';
@@ -90,12 +92,17 @@ class SetupController extends GetxController {
     }
 
     status.value = ModelStatus.downloaded;
-    await _loadAndNavigate();
     isBusy.value = false;
   }
 
-  Future<void> _loadAndNavigate() async {
+  /// "다음" button: loads the downloaded model into the engine, then navigates
+  /// to the translation screen. Shows a busy state while loading.
+  Future<void> proceed() async {
+    if (isBusy.value) return;
+    isBusy.value = true;
+    errorMessage.value = '';
     final result = await _repository.load();
+    isBusy.value = false;
     switch (result) {
       case Ok():
         status.value = ModelStatus.loaded;
@@ -106,9 +113,17 @@ class SetupController extends GetxController {
     }
   }
 
-  /// Retries from the current point: re-checks status (resumes via .part).
+  /// Retries from the right point: if the file is already downloaded (e.g. the
+  /// load failed), retry the load via [proceed]; otherwise (re)download,
+  /// resuming via the `.part` file when present.
   Future<void> retry() async {
-    await startDownload();
+    errorMessage.value = '';
+    final s = await _repository.currentStatus();
+    if (s == ModelStatus.downloaded || s == ModelStatus.loaded) {
+      await proceed();
+    } else {
+      await startDownload();
+    }
   }
 
   /// Cancels an in-flight download and returns to the idle setup state.

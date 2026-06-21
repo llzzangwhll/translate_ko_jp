@@ -9,6 +9,7 @@ import '../../domain/entities/translation_result.dart';
 import '../../domain/usecases/listen_speech.dart';
 import '../../domain/usecases/speak_text.dart';
 import '../../domain/usecases/translate_text.dart';
+import '../../domain/usecases/warm_up_model.dart';
 import '../../data/services/permission_service.dart';
 import '../../data/services/speech_service.dart';
 
@@ -17,16 +18,19 @@ class TranslationController extends GetxController {
   final ListenSpeech _listenSpeech;
   final SpeakText _speakText;
   final PermissionService _permission;
+  final WarmUpModel? _warmUpModel;
 
   TranslationController({
     required TranslateText translateText,
     required ListenSpeech listenSpeech,
     required SpeakText speakText,
     required PermissionService permissionService,
+    WarmUpModel? warmUpModel,
   })  : _translateText = translateText,
         _listenSpeech = listenSpeech,
         _speakText = speakText,
-        _permission = permissionService;
+        _permission = permissionService,
+        _warmUpModel = warmUpModel;
 
   final direction = LanguageDirection.koToJa().obs;
   final sourceText = ''.obs;
@@ -37,6 +41,11 @@ class TranslationController extends GetxController {
   final lastResult = Rxn<TranslationResult>();
   final errorMessage = ''.obs;
   final permissionPermanentlyDenied = false.obs;
+
+  /// Warm-up state for the manual "워밍업" button. [isWarmingUp] drives the
+  /// button spinner; [warmedUp] hides/disables it once done.
+  final isWarmingUp = false.obs;
+  final warmedUp = false.obs;
 
   /// Conversation log for the face-to-face interpreting UI: each completed
   /// translation is appended (oldest first), so both speakers can scroll back
@@ -211,6 +220,28 @@ class TranslationController extends GetxController {
       );
     } catch (e) {
       errorMessage.value = '음성 재생 실패: $e';
+    }
+  }
+
+  /// Manually warms up the inference engine (from the "워밍업" button) so the
+  /// first translation responds quickly. Idempotent: no-op once warmed up or
+  /// while a warm-up is already running.
+  Future<void> warmUp() async {
+    final warmUpModel = _warmUpModel;
+    if (warmUpModel == null || isWarmingUp.value || warmedUp.value) return;
+
+    isWarmingUp.value = true;
+    errorMessage.value = '';
+    try {
+      final result = await warmUpModel();
+      switch (result) {
+        case Ok():
+          warmedUp.value = true;
+        case Err(failure: final f):
+          errorMessage.value = '워밍업 실패: ${f.message}';
+      }
+    } finally {
+      isWarmingUp.value = false;
     }
   }
 

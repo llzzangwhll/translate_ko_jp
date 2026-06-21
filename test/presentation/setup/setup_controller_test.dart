@@ -52,13 +52,13 @@ void main() {
     expect(navigatedToTranslation, 0);
   });
 
-  test('startDownload streams progress then loads and navigates', () async {
+  test('startDownload streams progress then stops at downloaded (no load/nav)',
+      () async {
     repo.statusValue = ModelStatus.notDownloaded;
     repo.downloadScript = const [
       DownloadProgress(received: 50, total: 100, done: false),
       DownloadProgress(received: 100, total: 100, done: true),
     ];
-    repo.loadResult = const Ok(null);
     controller = build();
 
     await controller.startDownload();
@@ -66,21 +66,32 @@ void main() {
     // progress reflects last received fraction (1.0) on completion.
     expect(controller.receivedBytes.value, 100);
     expect(controller.totalBytes.value, 100);
-    expect(controller.status.value, ModelStatus.loaded);
+    // Stops at downloaded so the "다음" button shows; no load, no navigation.
+    expect(controller.status.value, ModelStatus.downloaded);
+    expect(repo.loadCalled, isFalse);
+    expect(navigatedToTranslation, 0);
+    expect(controller.isBusy.value, isFalse);
+  });
+
+  test('proceed loads the model then navigates', () async {
+    repo.loadResult = const Ok(null);
+    controller = build();
+    controller.status.value = ModelStatus.downloaded;
+
+    await controller.proceed();
+
     expect(repo.loadCalled, isTrue);
+    expect(controller.status.value, ModelStatus.loaded);
     expect(navigatedToTranslation, 1);
     expect(controller.isBusy.value, isFalse);
   });
 
-  test('startDownload sets error status when load fails', () async {
-    repo.statusValue = ModelStatus.notDownloaded;
-    repo.downloadScript = const [
-      DownloadProgress(received: 100, total: 100, done: true),
-    ];
+  test('proceed sets error status when load fails', () async {
     repo.loadResult = const Err(ModelFailureForTest());
     controller = build();
+    controller.status.value = ModelStatus.downloaded;
 
-    await controller.startDownload();
+    await controller.proceed();
 
     expect(controller.status.value, ModelStatus.error);
     expect(controller.errorMessage.value, isNotEmpty);

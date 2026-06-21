@@ -13,6 +13,7 @@ import '../data/repositories/translation_repository.dart';
 import '../domain/usecases/listen_speech.dart';
 import '../domain/usecases/speak_text.dart';
 import '../domain/usecases/translate_text.dart';
+import '../domain/usecases/warm_up_model.dart';
 import '../domain/usecases/save_translation.dart';
 import '../presentation/translation/translation_controller.dart';
 
@@ -37,6 +38,7 @@ void registerTranslationDeps() {
         listenSpeech: ListenSpeech(Get.find<SpeechService>()),
         speakText: SpeakText(Get.find<TtsService>()),
         permissionService: Get.find<PermissionService>(),
+        warmUpModel: WarmUpModel(Get.find<TranslationRepository>()),
       );
       final save = Get.find<SaveTranslation>();
       controller.onTranslated = (r) async {

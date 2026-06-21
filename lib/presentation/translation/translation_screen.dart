@@ -77,7 +77,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
               final hasLiveBubble = listening || translating;
 
               if (messages.isEmpty && !hasLiveBubble) {
-                return const _EmptyState();
+                return _EmptyState(controller: controller);
               }
 
               return ListView.builder(
@@ -131,7 +131,8 @@ class _AutoSpeakToggle extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final TranslationController controller;
+  const _EmptyState({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +160,8 @@ class _EmptyState extends StatelessWidget {
                     height: 1.6,
                   ),
             ),
+            const SizedBox(height: 28),
+            _WarmUpButton(controller: controller),
             const SizedBox(height: 24),
             Icon(Icons.keyboard_double_arrow_down_rounded,
                 size: 26, color: scheme.primary.withAlpha(120)),
@@ -166,6 +169,46 @@ class _EmptyState extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Optional one-tap warm-up shown before the first translation. Running it
+/// pays the engine's one-time init cost up front so the first real translation
+/// responds quickly. Becomes a "준비 완료" confirmation once done.
+class _WarmUpButton extends StatelessWidget {
+  final TranslationController controller;
+  const _WarmUpButton({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Obx(() {
+      if (controller.warmedUp.value) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 18, color: scheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              '번역 준비 완료',
+              style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+            ),
+          ],
+        );
+      }
+      final warming = controller.isWarmingUp.value;
+      return FilledButton.tonalIcon(
+        onPressed: warming ? null : controller.warmUp,
+        icon: warming
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.bolt, size: 18),
+        label: Text(warming ? '워밍업 중…' : '미리 워밍업'),
+      );
+    });
   }
 }
 

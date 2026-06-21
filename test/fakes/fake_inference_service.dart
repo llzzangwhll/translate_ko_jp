@@ -25,6 +25,11 @@ class FakeInferenceService implements InferenceService {
   @override
   Future<void> load({String? modelPath}) async => loaded = true;
 
+  bool warmUpCalled = false;
+
+  @override
+  Future<void> warmUp() async => warmUpCalled = true;
+
   @override
   Future<String> translate({
     required String text,
