@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../domain/entities/language_direction.dart';
 import '../../domain/entities/translation_result.dart';
 import 'history_controller.dart';
 
@@ -107,14 +108,36 @@ class HistoryScreen extends StatelessWidget {
   }
 }
 
+/// Source → target language label using a clean Material arrow icon instead
+/// of a plain "→" glyph.
+class _DirectionLabel extends StatelessWidget {
+  final LanguageDirection direction;
+  const _DirectionLabel({required this.direction});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final style = Theme.of(context).textTheme.labelMedium;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(direction.from.nativeLabel, style: style),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Icon(Icons.arrow_right_alt_rounded,
+              size: 16, color: scheme.primary),
+        ),
+        Text(direction.to.nativeLabel, style: style),
+      ],
+    );
+  }
+}
+
 class _HistoryTile extends StatelessWidget {
   final TranslationResult entry;
   final HistoryController controller;
 
   const _HistoryTile({required this.entry, required this.controller});
-
-  String get _directionLabel =>
-      '${entry.direction.from.nativeLabel} → ${entry.direction.to.nativeLabel}';
 
   String get _timestamp {
     final d = entry.createdAt;
@@ -133,10 +156,7 @@ class _HistoryTile extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  _directionLabel,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                child: _DirectionLabel(direction: entry.direction),
               ),
               Text(
                 _timestamp,

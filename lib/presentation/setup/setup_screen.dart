@@ -86,21 +86,21 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
-      child: const Column(
+      child: Column(
         children: [
           _InfoRow(
             icon: Icons.translate,
             label: '모델',
-            value: 'Gemma · 한↔일',
+            valueWidget: const _ModelPairValue(),
           ),
-          Divider(height: 1, indent: 16, endIndent: 16),
-          _InfoRow(
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          const _InfoRow(
             icon: Icons.cloud_off_outlined,
             label: '동작',
             value: '오프라인 · 온디바이스',
           ),
-          Divider(height: 1, indent: 16, endIndent: 16),
-          _InfoRow(
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          const _InfoRow(
             icon: Icons.wifi,
             label: '권장',
             value: 'Wi-Fi 환경',
@@ -115,14 +115,20 @@ class _InfoCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String value;
+
+  /// Plain-text value. Ignored when [valueWidget] is supplied.
+  final String? value;
+
+  /// Rich value (e.g. a language pair with an icon). Takes precedence.
+  final Widget? valueWidget;
   final bool isLast;
   const _InfoRow({
     required this.icon,
     required this.label,
-    required this.value,
+    this.value,
+    this.valueWidget,
     this.isLast = false,
-  });
+  }) : assert(value != null || valueWidget != null);
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +145,38 @@ class _InfoRow extends StatelessWidget {
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-          ),
+          valueWidget ??
+              Text(
+                value!,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              ),
         ],
       ),
+    );
+  }
+}
+
+/// Model language pair, e.g. "Gemma · 한 ⇄ 일", using a clean Material swap
+/// icon instead of a plain arrow glyph.
+class _ModelPairValue extends StatelessWidget {
+  const _ModelPairValue();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const textStyle = TextStyle(fontWeight: FontWeight.w500, fontSize: 14);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Gemma · ', style: textStyle),
+        const Text('한', style: textStyle),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: Icon(Icons.swap_horiz_rounded, size: 18, color: scheme.primary),
+        ),
+        const Text('일', style: textStyle),
+      ],
     );
   }
 }

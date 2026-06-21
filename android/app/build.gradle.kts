@@ -42,5 +42,8 @@ flutter {
 }
 
 dependencies {
-    implementation("com.google.mediapipe:tasks-genai:0.10.22")
+    // 0.10.24+ is required to load LiteRT-LM (.litertlm) models such as
+    // Gemma 3n E2B. Older versions try to parse them as legacy TFLite bundles
+    // and fail with "RET_CHECK ... Error building tflite model".
+    implementation("com.google.mediapipe:tasks-genai:0.10.35")
 }
