@@ -48,6 +48,27 @@ void main() {
     expect(c.isTranslating.value, isFalse);
   });
 
+  test('multiple final results in one session translate only once', () async {
+    final inference = FakeInferenceService(response: 'こんにちは');
+    final speech = FakeSpeechService();
+    final tts = FakeTtsService();
+    final c = _build(inference: inference, speech: speech, tts: tts);
+    var translated = 0;
+    c.onTranslated = (_) => translated++;
+
+    await c.toggleListening();
+    // Dictation mode can emit several final results in one session.
+    speech.emit('이것은', isFinal: true);
+    await Future<void>.delayed(Duration.zero);
+    speech.emit('이것은 무엇입니까?', isFinal: true);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(translated, 1);
+    expect(c.messages.length, 1);
+    // The engine must be stopped after the first final result.
+    expect(speech.listening, isFalse);
+  });
+
   test('onTranslated seam fires with the produced result', () async {
     final c = _build(
       inference: FakeInferenceService(response: 'こんにちは'),

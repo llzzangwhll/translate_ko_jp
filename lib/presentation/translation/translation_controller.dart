@@ -72,6 +72,13 @@ class TranslationController extends GetxController {
   Language get sourceLanguage => direction.value.from;
   Language get targetLanguage => direction.value.to;
 
+  /// Guards against the speech engine emitting more than one final result per
+  /// listen session. In dictation mode the plugin can report a final result
+  /// when the speaker pauses and then again when they continue, which would
+  /// otherwise trigger translate() multiple times and duplicate the output
+  /// (e.g. "이것은" then "이것은 무엇입니까?"). Reset when a new session starts.
+  bool _finalized = false;
+
   @override
   Future<void> onReady() async {
     super.onReady();
@@ -84,6 +91,7 @@ class TranslationController extends GetxController {
 
   Future<void> toggleListening() async {
     if (isListening.value) {
+      _finalized = true; // ignore any late final result from the engine
       await _listenSpeech.stop();
       isListening.value = false;
       if (sourceText.value.trim().isNotEmpty) await translate();
@@ -112,6 +120,7 @@ class TranslationController extends GetxController {
       return;
     }
     isListening.value = true;
+    _finalized = false;
     sourceText.value = '';
     translatedText.value = '';
     await _listenSpeech(
@@ -135,9 +144,12 @@ class TranslationController extends GetxController {
   }
 
   void _onSpeechResult(SpeechResult result) {
+    if (_finalized) return; // a final result was already handled this session
     sourceText.value = result.text;
     if (result.isFinal && result.text.trim().isNotEmpty) {
+      _finalized = true;
       isListening.value = false;
+      unawaited(_listenSpeech.stop()); // stop the engine so no further finals fire
       unawaited(translate());
     }
   }
