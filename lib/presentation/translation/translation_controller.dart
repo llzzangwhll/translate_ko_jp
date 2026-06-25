@@ -101,14 +101,14 @@ class TranslationController extends GetxController {
     // Request microphone permission before starting listening
     final perm = await _permission.ensureMicrophone();
     switch (perm) {
-      case MicPermission.granted:
+      case PermissionResult.granted:
         permissionPermanentlyDenied.value = false;
         errorMessage.value = '';
-      case MicPermission.denied:
+      case PermissionResult.denied:
         errorMessage.value =
             const PermissionFailure('마이크 권한이 필요합니다. 권한을 허용해 주세요.').message;
         return;
-      case MicPermission.permanentlyDenied:
+      case PermissionResult.permanentlyDenied:
         permissionPermanentlyDenied.value = true;
         errorMessage.value =
             const PermissionFailure('마이크 권한이 거부되었습니다. 설정에서 허용해 주세요.').message;

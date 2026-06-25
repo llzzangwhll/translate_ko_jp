@@ -1,6 +1,7 @@
 import 'translation_deps.dart';
 import 'model_deps.dart';
 import 'history_deps.dart';
+import 'ocr_deps.dart';
 
 /// Registers all flow dependencies in dependency-safe order.
 /// translation must run first (owns InferenceService/TtsService that the
@@ -9,4 +10,6 @@ Future<void> registerAllDeps() async {
   registerTranslationDeps();
   registerModelDeps();
   await registerHistoryDeps();
+  // OCR reuses TranslationRepository/TtsService/SaveTranslation, so it runs last.
+  registerOcrDeps();
 }

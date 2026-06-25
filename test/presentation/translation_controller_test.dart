@@ -139,7 +139,7 @@ void main() {
 
   test('permission denied → errorMessage set, isListening stays false, speech not started', () async {
     final speech = FakeSpeechService();
-    final permission = FakePermissionService(result: MicPermission.denied);
+    final permission = FakePermissionService(result: PermissionResult.denied);
     final c = _build(
       inference: FakeInferenceService(),
       speech: speech,
@@ -157,7 +157,7 @@ void main() {
 
   test('permission permanentlyDenied → permissionPermanentlyDenied true, errorMessage set', () async {
     final speech = FakeSpeechService();
-    final permission = FakePermissionService(result: MicPermission.permanentlyDenied);
+    final permission = FakePermissionService(result: PermissionResult.permanentlyDenied);
     final c = _build(
       inference: FakeInferenceService(),
       speech: speech,
@@ -175,7 +175,7 @@ void main() {
   });
 
   test('openAppSettings calls permission service openSettings', () async {
-    final permission = FakePermissionService(result: MicPermission.permanentlyDenied);
+    final permission = FakePermissionService(result: PermissionResult.permanentlyDenied);
     final c = _build(
       inference: FakeInferenceService(),
       speech: FakeSpeechService(),
@@ -190,7 +190,7 @@ void main() {
 
   test('permission granted clears errorMessage and starts listening', () async {
     final speech = FakeSpeechService();
-    final permission = FakePermissionService(result: MicPermission.granted);
+    final permission = FakePermissionService(result: PermissionResult.granted);
     final c = _build(
       inference: FakeInferenceService(),
       speech: speech,

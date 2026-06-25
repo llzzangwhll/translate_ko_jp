@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../presentation/setup/setup_screen.dart';
 import '../presentation/translation/translation_screen.dart';
 import '../presentation/history/history_screen.dart';
+import '../presentation/ocr/ocr_screen.dart';
 import 'routes.dart';
 import 'theme.dart';
 
@@ -22,6 +23,7 @@ class TranslateApp extends StatelessWidget {
         GetPage(name: Routes.setup, page: () => const SetupScreen()),
         GetPage(name: Routes.translation, page: () => const TranslationScreen()),
         GetPage(name: Routes.history, page: () => const HistoryScreen()),
+        GetPage(name: Routes.ocr, page: () => const OcrScreen()),
       ],
     );
   }

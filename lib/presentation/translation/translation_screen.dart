@@ -54,6 +54,11 @@ class _TranslationScreenState extends State<TranslationScreen> {
         actions: [
           _AutoSpeakToggle(controller: controller),
           IconButton(
+            icon: const Icon(Icons.photo_camera),
+            tooltip: '사진 번역',
+            onPressed: () => Get.toNamed(Routes.ocr),
+          ),
+          IconButton(
             icon: const Icon(Icons.history),
             tooltip: '히스토리',
             onPressed: () => Get.toNamed(Routes.history),

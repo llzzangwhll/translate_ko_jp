@@ -1,6 +1,7 @@
-enum MicPermission { granted, denied, permanentlyDenied }
+enum PermissionResult { granted, denied, permanentlyDenied }
 
 abstract interface class PermissionService {
-  Future<MicPermission> ensureMicrophone();
+  Future<PermissionResult> ensureMicrophone();
+  Future<PermissionResult> ensureCamera();
   Future<void> openSettings();
 }
