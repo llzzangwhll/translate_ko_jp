@@ -51,4 +51,12 @@ dependencies {
     // acceleration (OpenCL, ~52 tok/s on Android). Replaces the older MediaPipe
     // tasks-genai LLM path, which is in maintenance mode and fell back to CPU.
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.13.1")
+
+    // ML Kit text recognition: the google_mlkit_text_recognition plugin bundles
+    // only the Latin recognizer and declares the per-script ones as compileOnly,
+    // so the app must pull in the scripts it actually uses. We OCR Korean and
+    // Japanese; without these the R8 release build fails on missing classes and
+    // the recognizers would be absent at runtime.
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
 }
