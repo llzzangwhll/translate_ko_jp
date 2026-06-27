@@ -244,9 +244,10 @@ class MainActivity : FlutterActivity() {
 
         // Plain instruction. LiteRT-LM's Conversation applies the model's chat
         // template itself, so we must NOT add <start_of_turn> markers here.
-        return "Translate the following $source sentence into $target. " +
+        return "Translate the following $source text into $target. " +
+            "Translate every line in full. " +
             "Output only the $target translation — no explanations, no labels, " +
-            "and do not repeat the original sentence.\n\n$text"
+            "and do not repeat the original text.\n\n$text"
     }
 
     private fun cleanResponse(response: String, sourceText: String): String {
@@ -262,11 +263,17 @@ class MainActivity : FlutterActivity() {
         cleaned = cleaned.replace(Regex("<[^>]*>"), "")
 
         val prefixes = listOf("한국어:", "日本語:", "Korean:", "Japanese:", "Translation:", "번역:", "翻訳:")
-        val src = sourceText.trim()
+        // Echo-filter per line so multi-line OCR input doesn't get its
+        // translation thrown away. Each source line is matched individually.
+        val sourceLines = sourceText.lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
 
-        // Strip per-line labels and drop blank lines or lines that merely echo
-        // the source sentence, then take the first real translation line.
-        val pick = cleaned.lines()
+        // Strip per-line labels and drop blank lines or lines that merely echo a
+        // source line, then keep ALL remaining translation lines (not just the
+        // first — OCR text is often several lines long).
+        val picked = cleaned.lines()
             .map { line ->
                 var l = line.trim()
                 for (prefix in prefixes) {
@@ -274,9 +281,9 @@ class MainActivity : FlutterActivity() {
                 }
                 l
             }
-            .firstOrNull { it.isNotBlank() && it != src }
+            .filter { it.isNotBlank() && it !in sourceLines }
 
-        return pick ?: cleaned.trim()
+        return if (picked.isNotEmpty()) picked.joinToString("\n") else cleaned.trim()
     }
 
     override fun onDestroy() {
